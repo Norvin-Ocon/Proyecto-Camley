@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+
+{% block title %} - Panel Conductor{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">
+        <i class="bi bi-steering"></i> Panel del Conductor
+    </h2>
+    
+    <!-- Bienvenida -->
+    <div class="alert alert-info mb-4">
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <i class="bi bi-person-badge fs-1"></i>
+            </div>
+            <div>
+                <h5 class="alert-heading mb-1">Bienvenido, {{ current_user.nombre }}!</h5>
+                <p class="mb-0">Listo para iniciar tu ruta del día.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Columna izquierda: Información de ruta -->
+        <div class="col-lg-8 mb-4">
+            {% if ruta %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-signpost"></i> Ruta Asignada: {{ ruta.nombre }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><i class="bi bi-clock"></i> <strong>Hora de inicio:</strong> {{ ruta.hora_inicio }}</p>
+                            {% if ruta.hora_fin %}
+                            <p><i class="bi bi-clock-history"></i> <strong>Hora de fin:</strong> {{ ruta.hora_fin }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <p><i class="bi bi-geo-alt"></i> <strong>Estado:</strong> 
+                                <span class="badge bg-success">Activa</span>
+                            </p>
+                            <p><i class="bi bi-info-circle"></i> {{ ruta.descripcion or 'Sin descripción' }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Controles de ruta -->
+                    <div class="btn-group mb-3" role="group">
+                        <button class="btn btn-success" id="startRouteBtn">
+                            <i class="bi bi-play-circle"></i> Iniciar Ruta
+                        </button>
+                        <button class="btn btn-warning" id="pauseRouteBtn">
+                            <i class="bi bi-pause-circle"></i> Pausar
+                        </button>
+                        <button class="btn btn-danger" id="endRouteBtn">
+                            <i class="bi bi-stop-circle"></i> Finalizar Ruta
+                        </button>
+                    </div>
+                    
+                    <!-- GPS -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="bi bi-geo-alt"></i> Sistema de GPS</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="locationStatus" class="mb-3">
+                                <span class="text-muted">📍 Ubicación no actualizada</span>
+                            </div>
+                            <button class="btn btn-primary" id="updateLocationBtn">
+                                <i class="bi bi-geo"></i> Actualizar Mi Ubicación
+                            </button>
+                            <button class="btn btn-outline-info" id="simulateLocationBtn">
+                                <i class="bi bi-map"></i> Simular Ubicación
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lista de estudiantes -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Estudiantes en esta Ruta</h5>
+                </div>
+                <div class="card-body">
+                    {% if estudiantes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Grado</th>
+                                    <th>Escuela</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for estudiante in estudiantes %}
+                                <tr>
+                                    <td>{{ estudiante.nombre }}</td>
+                                    <td>{{ estudiante.grado }}</td>
+                                    <td>{{ estudiante.escuela or 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary" id="status-{{ estudiante.id }}">
+                                            No abordado
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-success" 
+                                                    onclick="marcarAbordaje({{ estudiante.id }}, 'abordado')">
+                                                <i class="bi bi-check-circle"></i> Abordó
+                                            </button>
+                                            <button class="btn btn-warning" 
+                                                    onclick="marcarAbordaje({{ estudiante.id }}, 'bajo')">
+                                                <i class="bi bi-x-circle"></i> Bajó
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-people display-1 text-muted"></i>
+                        <p class="text-muted mt-3">No hay estudiantes asignados a esta ruta</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-signpost-split display-1 text-muted"></i>
+                    <h4 class="text-muted mt-3">No tienes ruta asignada</h4>
+                    <p class="text-muted">Contacta al administrador para que te asigne una ruta</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Columna derecha: Información y controles -->
+        <div class="col-lg-4 mb-4">
+            <!-- Información del conductor -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-badge"></i> Mi Información</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="avatar bg-info text-white rounded-circle mx-auto" 
+                            style="width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                            {{ current_user.nombre[0] }}
+                        </div>
+                        <h5 class="mt-3">{{ current_user.nombre }}</h5>
+                        <p class="text-muted">Conductor</p>
+                    </div>
+                    
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <i class="bi bi-envelope me-2"></i>
+                            {{ current_user.email }}
+                        </div>
+                        {% if current_user.telefono %}
+                        <div class="list-group-item">
+                            <i class="bi bi-telephone me-2"></i>
+                            {{ current_user.telefono }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notificaciones rápidas -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="bi bi-bell"></i> Notificaciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <button class="btn btn-outline-warning w-100 mb-2" onclick="enviarNotificacion('retraso')">
+                            <i class="bi bi-clock-history"></i> Reportar Retraso
+                        </button>
+                        <button class="btn btn-outline-danger w-100 mb-2" onclick="enviarNotificacion('problema')">
+                            <i class="bi bi-exclamation-triangle"></i> Reportar Problema
+                        </button>
+                        <button class="btn btn-outline-success w-100" onclick="enviarNotificacion('llegada')">
+                            <i class="bi bi-check-circle"></i> Llegada a Escuela
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estadísticas del día -->
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Hoy</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <h2 id="studentsBoarded">0</h2>
+                        <p class="text-muted">Estudiantes abordados</p>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <h2 id="studentsDropped">0</h2>
+                        <p class="text-muted">Estudiantes que bajaron</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para enviar notificación -->
+<div class="modal fade" id="notificationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="notificationTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="notificationContent"></div>
+                <div class="mb-3">
+                    <label class="form-label">Mensaje adicional</label>
+                    <textarea class="form-control" id="notificationMessage" rows="3" 
+                            placeholder="Ej: Retraso de 15 minutos por tráfico..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="sendNotificationBtn">Enviar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let boardedCount = 0;
+let droppedCount = 0;
+let currentNotificationType = '';
+
+function marcarAbordaje(estudianteId, accion) {
+    const statusElement = document.getElementById(`status-${estudianteId}`);
+    
+    if (accion === 'abordado') {
+        statusElement.className = 'badge bg-success';
+        statusElement.textContent = 'Abordado';
+        boardedCount++;
+    } else {
+        statusElement.className = 'badge bg-info';
+        statusElement.textContent = 'Bajó';
+        droppedCount++;
+    }
+    
+    document.getElementById('studentsBoarded').textContent = boardedCount;
+    document.getElementById('studentsDropped').textContent = droppedCount;
+    
+    // Enviar al servidor (simulado)
+    fetch('/conductor/asistencia/registrar', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            estudiante_id: estudianteId,
+            tipo: accion === 'abordado' ? 'entrada' : 'salida'
+        })
+    });
+}
+
+function enviarNotificacion(tipo) {
+    currentNotificationType = tipo;
+    
+    const titles = {
+        'retraso': 'Reportar Retraso',
+        'problema': 'Reportar Problema',
+        'llegada': 'Llegada a Escuela'
+    };
+    
+    const messages = {
+        'retraso': 'Los padres recibirán una notificación sobre el retraso.',
+        'problema': 'Se notificará a los padres y al administrador.',
+        'llegada': 'Se notificará a los padres que has llegado a la escuela.'
+    };
+    
+    document.getElementById('notificationTitle').textContent = titles[tipo];
+    document.getElementById('notificationContent').innerHTML = `<p>${messages[tipo]}</p>`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('notificationModal'));
+    modal.show();
+}
+
+document.getElementById('sendNotificationBtn').addEventListener('click', function() {
+    const message = document.getElementById('notificationMessage').value;
+    
+    // Simular envío
+    alert(`✅ Notificación enviada: ${currentNotificationType}\nMensaje: ${message}`);
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('notificationModal'));
+    modal.hide();
+});
+
+// GPS
+document.getElementById('updateLocationBtn').addEventListener('click', function() {
+    const locationStatus = document.getElementById('locationStatus');
+    locationStatus.innerHTML = '<span class="text-warning">📍 Obteniendo ubicación...</span>';
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                // Enviar al servidor
+                fetch('/conductor/ubicacion/actualizar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ lat: lat, lng: lng })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        locationStatus.innerHTML = 
+                            `<span class="text-success">✅ Ubicación actualizada</span>
+                            <br><small>Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}</small>`;
+                    } else {
+                        locationStatus.innerHTML = 
+                            `<span class="text-danger">❌ Error: ${data.error}</span>`;
+                    }
+                });
+            },
+            (error) => {
+                locationStatus.innerHTML = 
+                    `<span class="text-danger">❌ Error obteniendo ubicación</span>`;
+            }
+        );
+    } else {
+        locationStatus.innerHTML = 
+            '<span class="text-danger">❌ Geolocalización no soportada</span>';
+    }
+});
+
+// Simular ubicación
+document.getElementById('simulateLocationBtn').addEventListener('click', function() {
+    // Coordenadas de ejemplo en Nicaragua
+    const locations = [
+        { lat: 12.1364, lng: -86.2514, name: 'Managua Centro' },
+        { lat: 12.1500, lng: -86.2700, name: 'Metrocentro' },
+        { lat: 12.1200, lng: -86.2200, name: 'Carretera Norte' }
+    ];
+    
+    const randomLoc = locations[Math.floor(Math.random() * locations.length)];
+    
+    fetch('/conductor/ubicacion/actualizar', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ lat: randomLoc.lat, lng: randomLoc.lng })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('locationStatus').innerHTML = 
+                `<span class="text-success">✅ Ubicación simulada: ${randomLoc.name}</span>
+                <br><small>Lat: ${randomLoc.lat.toFixed(4)}, Lng: ${randomLoc.lng.toFixed(4)}</small>`;
+        }
+    });
+});
+
+// Controles de ruta
+document.getElementById('startRouteBtn').addEventListener('click', function() {
+    if (confirm('¿Iniciar la ruta? Se notificará a los padres.')) {
+        this.disabled = true;
+        document.getElementById('endRouteBtn').disabled = false;
+        alert('✅ Ruta iniciada. Los padres han sido notificados.');
+    }
+});
+
+document.getElementById('endRouteBtn').addEventListener('click', function() {
+    if (confirm('¿Finalizar la ruta? Se notificará a los padres.')) {
+        this.disabled = true;
+        document.getElementById('startRouteBtn').disabled = false;
+        alert('✅ Ruta finalizada. Los padres han sido notificados.');
+    }
+});
+</script>
+{% endblock %}

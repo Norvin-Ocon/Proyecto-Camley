@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %} - Panel Admin{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="bi bi-speedometer2"></i> Panel de Administración
+        </h2>
+    </div>
+</div>
+
+<!-- Tarjetas de estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Estudiantes</h6>
+                        <h2 class="mb-0">{{ estudiantes }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-people-fill fs-1"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('admin_estudiantes') }}" class="text-white small stretched-link">
+                    Ver todos
+                </a>
+                <div class="text-white"><i class="bi bi-chevron-right"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Pagos Pendientes</h6>
+                        <h2 class="mb-0">{{ pagos_pendientes }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-cash-coin fs-1"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="{{ url_for('admin_pagos') }}" class="text-white small stretched-link">
+                    Gestionar pagos
+                </a>
+                <div class="text-white"><i class="bi bi-chevron-right"></i></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Conductores Activos</h6>
+                        <h2 class="mb-0">{{ conductores }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-steering fs-1"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a href="#" class="text-white small stretched-link">
+                    Ver conductores
+                </a>
+                <div class="text-white"><i class="bi bi-chevron-right"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Acciones rápidas -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-lightning-charge"></i> Acciones Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_estudiantes') }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-person-plus"></i> Agregar Estudiante
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_pagos') }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-cash"></i> Registrar Pago
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_finanzas') }}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-graph-up"></i> Ver Finanzas
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="#" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-file-text"></i> Generar Reporte
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Últimos pagos -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Últimos Pagos</h5>
+            </div>
+            <div class="card-body">
+                {% if ultimos_pagos %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Estudiante</th>
+                                <th>Monto</th>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pago in ultimos_pagos %}
+                            <tr>
+                                <td>
+                                    {% set estudiante = pago.estudiante %}
+                                    {{ estudiante.nombre if estudiante else 'N/A' }}
+                                </td>
+                                <td>${{ "%.2f"|format(pago.monto) }}</td>
+                                <td>
+                                    {% if pago.estado == 'pagado' %}
+                                    <span class="badge bg-success">Pagado</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ pago.fecha_emision.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <a href="#" class="btn btn-sm btn-outline-info">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-cash-coin fs-1 text-muted"></i>
+                    <p class="text-muted mt-2">No hay pagos registrados aún</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

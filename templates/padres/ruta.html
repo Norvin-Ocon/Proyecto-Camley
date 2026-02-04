@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %} - Seguimiento de Ruta{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-geo-alt"></i> Seguimiento de Ruta
+        </h2>
+        <a href="{{ url_for('padre_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+    
+    <div class="row">
+        <!-- Información principal -->
+        <div class="col-lg-8 mb-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bus-front"></i> {{ estudiante.nombre }} - Seguimiento en Tiempo Real
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Mapa simulado -->
+                    <div class="map-container bg-light rounded mb-4" style="height: 300px;">
+                        <div class="h-100 d-flex flex-column align-items-center justify-content-center">
+                            <i class="bi bi-map display-1 text-muted"></i>
+                            <p class="text-muted mt-3">Mapa en tiempo real</p>
+                            <p class="text-muted">(En producción se integraría con Google Maps)</p>
+                            
+                            {% if ubicacion_vehiculo %}
+                            <div class="alert alert-info mt-3">
+                                <i class="bi bi-geo"></i> 
+                                <strong>Última ubicación:</strong> 
+                                {{ ubicacion_vehiculo.lat|round(4) }}, {{ ubicacion_vehiculo.lng|round(4) }}
+                                <br>
+                                <small>Actualizado: {{ ubicacion_vehiculo.ultima_actualizacion }}</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Información de la ruta -->
+                    {% if ruta %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6><i class="bi bi-signpost"></i> Información de Ruta</h6>
+                                    <p><strong>Nombre:</strong> {{ ruta.nombre }}</p>
+                                    <p><strong>Hora inicio:</strong> {{ ruta.hora_inicio }}</p>
+                                    {% if ruta.hora_fin %}
+                                    <p><strong>Hora fin:</strong> {{ ruta.hora_fin }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6><i class="bi bi-person-badge"></i> Conductor</h6>
+                                    {% if conductor %}
+                                    <p><strong>Nombre:</strong> {{ conductor.nombre }}</p>
+                                    {% if conductor.telefono %}
+                                    <p><strong>Teléfono:</strong> {{ conductor.telefono }}</p>
+                                    {% endif %}
+                                    {% else %}
+                                    <p class="text-muted">Conductor no asignado</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Paradas -->
+                    {% if paradas %}
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="bi bi-geo"></i> Paradas de la Ruta</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="list-group">
+                                {% for parada in paradas %}
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ parada.nombre }}</h6>
+                                        {% if parada.hora %}
+                                        <small>{{ parada.hora }}</small>
+                                        {% endif %}
+                                    </div>
+                                    {% if parada.direccion %}
+                                    <p class="mb-1"><small>{{ parada.direccion }}</small></p>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Este estudiante no tiene una ruta asignada.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel lateral -->
+        <div class="col-lg-4 mb-4">
+            <!-- Notificaciones -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="bi bi-bell"></i> Notificaciones</h5>
+                </div>
+                <div class="card-body">
+                    <div id="notificationsList">
+                        {% if asistencias_recientes %}
+                            {% for asistencia in asistencias_recientes %}
+                            <div class="alert alert-info mb-2 p-2">
+                                <small>
+                                    <i class="bi bi-check-circle"></i>
+                                    {{ asistencia.tipo|capitalize }}: 
+                                    {{ asistencia.fecha.strftime('%H:%M') }}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted text-center py-3">
+                                <i class="bi bi-bell-slash"></i><br>
+                                No hay notificaciones recientes
+                            </p>
+                        {% endif %}
+                    </div>
+                    
+                    <button class="btn btn-outline-warning w-100 mt-2" onclick="simularNotificacion()">
+                        <i class="bi bi-bell"></i> Simular Notificación
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Controles -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Controles</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="actualizarUbicacion()">
+                            <i class="bi bi-arrow-clockwise"></i> Actualizar Ubicación
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="contactarConductor()">
+                            <i class="bi bi-chat"></i> Contactar Conductor
+                        </button>
+                        <button class="btn btn-outline-success" onclick="enviarMensaje()">
+                            <i class="bi bi-envelope"></i> Enviar Mensaje
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function actualizarUbicacion() {
+    // Simular actualización
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-info alert-dismissible fade show mb-2';
+    notification.innerHTML = `
+        <i class="bi bi-check-circle"></i> Ubicación actualizada hace 2 minutos
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.getElementById('notificationsList').prepend(notification);
+}
+
+function contactarConductor() {
+    alert('📞 En una implementación real, esto abriría el teléfono para llamar al conductor.');
+}
+
+function enviarMensaje() {
+    const message = prompt('Escribe tu mensaje para el conductor:');
+    if (message) {
+        alert(`✅ Mensaje enviado: "${message}"`);
+    }
+}
+
+function simularNotificacion() {
+    const notifications = [
+        "🚌 El vehículo está a 5 minutos de la parada",
+        "📍 Vehículo en camino a la escuela",
+        "✅ Estudiante ha abordado el vehículo",
+        "🏫 Llegada a la escuela en 10 minutos"
+    ];
+    
+    const randomNotif = notifications[Math.floor(Math.random() * notifications.length)];
+    const now = new Date();
+    const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
+                    now.getMinutes().toString().padStart(2, '0');
+    
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-success alert-dismissible fade show mb-2';
+    notification.innerHTML = `
+        <i class="bi bi-bell"></i> ${randomNotif} (${timeString})
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.getElementById('notificationsList').prepend(notification);
+    
+    // También mostrar notificación push si está permitido
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Camley Transporte', {
+            body: randomNotif,
+            icon: '/static/icon-192.png'
+        });
+    }
+}
+
+// Actualizar automáticamente cada 30 segundos
+setInterval(actualizarUbicacion, 30000);
+</script>
+{% endblock %}

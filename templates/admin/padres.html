@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-people-fill"></i> Gestión de Padres/Tutores
+        </h2>
+        <span class="badge bg-primary">{{ padres_info|length }} padres</span>
+    </div>
+    
+    <div class="row">
+        {% for info in padres_info %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-badge"></i> {{ info.padre.nombre }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="mb-1">
+                            <i class="bi bi-envelope"></i> 
+                            <strong>Email:</strong> {{ info.padre.email }}
+                        </p>
+                        {% if info.padre.telefono %}
+                        <p class="mb-1">
+                            <i class="bi bi-telephone"></i> 
+                            <strong>Teléfono:</strong> {{ info.padre.telefono }}
+                        </p>
+                        {% endif %}
+                        <p class="mb-1">
+                            <i class="bi bi-calendar"></i> 
+                            <strong>Registrado:</strong> 
+                            {{ info.padre.fecha_registro.strftime('%d/%m/%Y') }}
+                        </p>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6><i class="bi bi-people"></i> Estudiantes a cargo:</h6>
+                    {% if info.estudiantes %}
+                    <ul class="list-group list-group-flush mb-3">
+                        {% for estudiante in info.estudiantes %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ estudiante.nombre }}
+                            <span class="badge bg-secondary">{{ estudiante.grado }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">No tiene estudiantes asignados</p>
+                    {% endif %}
+                    
+                    <h6><i class="bi bi-cash-coin"></i> Estado de Pagos:</h6>
+                    {% if info.pagos_pendientes %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>{{ info.pagos_pendientes|length }} pagos pendientes</strong>
+                        <br>
+                        Total: ${{ "%.2f"|format(info.total_pendiente) }}
+                    </div>
+                    
+                    <div class="accordion" id="accordionPagos{{ info.padre.id }}">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#collapsePagos{{ info.padre.id }}">
+                                    Ver pagos pendientes
+                                </button>
+                            </h2>
+                            <div id="collapsePagos{{ info.padre.id }}" class="accordion-collapse collapse">
+                                <div class="accordion-body">
+                                    {% for pago in info.pagos_pendientes %}
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <div>
+                                            <small>{{ pago.estudiante.nombre }}</small>
+                                            <br>
+                                            <small class="text-muted">
+                                                Vence: {{ pago.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                                            </small>
+                                        </div>
+                                        <div class="text-end">
+                                            <strong>${{ "%.2f"|format(pago.monto) }}</strong>
+                                            <br>
+                                            <span class="badge bg-warning">Pendiente</span>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i>
+                        Al día con los pagos
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100" role="group">
+                        <button class="btn btn-outline-info btn-sm" 
+                                onclick="verDetallesPadre({{ info.padre.id }})">
+                            <i class="bi bi-eye"></i> Detalles
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm"
+                                onclick="editarPadre({{ info.padre.id }})">
+                            <i class="bi bi-pencil"></i> Editar
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm"
+                                onclick="desactivarPadre({{ info.padre.id }})">
+                            <i class="bi bi-x-circle"></i> Desactivar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function verDetallesPadre(padreId) {
+    alert('Detalles del padre ID: ' + padreId + '\nEn una implementación completa, se abriría un modal con toda la información.');
+}
+
+function editarPadre(padreId) {
+    alert('Editar padre ID: ' + padreId + '\nEn una implementación completa, se abriría un formulario de edición.');
+}
+
+function desactivarPadre(padreId) {
+    if (confirm('¿Desactivar esta cuenta de padre? No podrá iniciar sesión hasta que sea reactivada.')) {
+        fetch('/admin/padres/' + padreId + '/desactivar', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

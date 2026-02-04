@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %} - Gestión de Pagos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-cash-coin"></i> Gestión de Pagos</h2>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
+            <i class="bi bi-plus-circle"></i> Registrar Pago
+        </button>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label>Estado</label>
+                    <select name="estado" class="form-select" onchange="this.form.submit()">
+                        <option value="todos" {% if estado_actual == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="pendiente" {% if estado_actual == 'pendiente' %}selected{% endif %}>Pendientes</option>
+                        <option value="pagado" {% if estado_actual == 'pagado' %}selected{% endif %}>Pagados</option>
+                        <option value="vencido" {% if estado_actual == 'vencido' %}selected{% endif %}>Vencidos</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label>Estudiante</label>
+                    <select name="estudiante_id" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todos</option>
+                        {% for estudiante in estudiantes %}
+                        <option value="{{ estudiante.id }}">{{ estudiante.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Tabla de pagos -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Listado de Pagos</h5>
+        </div>
+        <div class="card-body">
+            {% if pagos %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Estudiante</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>Vencimiento</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pago in pagos %}
+                        <tr>
+                            <!-- PARTE ACTUALIZADA -->
+                            <td>
+                                {% if pago.estudiante %}
+                                <strong>{{ pago.estudiante.nombre }}</strong>
+                                <br>
+                                <small class="text-muted">ID: {{ pago.id }}</small>
+                                {% else %}
+                                <span class="text-danger">Estudiante no encontrado</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <span class="fw-bold">${{ "%.2f"|format(pago.monto) }}</span>
+                            </td>
+                            <td>
+                                {% if pago.estado == 'pagado' %}
+                                <span class="badge bg-success">Pagado</span>
+                                {% elif pago.fecha_vencimiento and pago.fecha_vencimiento < now %}
+                                <span class="badge bg-danger">Vencido</span>
+                                {% else %}
+                                <span class="badge bg-warning">Pendiente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pago.fecha_vencimiento %}
+                                {{ pago.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                                {% if pago.fecha_vencimiento < now %}
+                                <br>
+                                <small class="text-danger">
+                                    Hace {{ (now - pago.fecha_vencimiento).days }} días
+                                </small>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">No definido</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pago.estado == 'pendiente' %}
+                                <button class="btn btn-sm btn-success" 
+                                        onclick="registrarPago({{ pago.id }})">
+                                    <i class="bi bi-check-circle"></i> Marcar Pagado
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-cash-coin display-1 text-muted"></i>
+                <h4 class="text-muted mt-3">No hay pagos registrados</h4>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para registrar pago -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-cash"></i> Registrar Pago</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('registrar_pago_admin') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Estudiante *</label>
+                        <select class="form-select" name="estudiante_id" required>
+                            <option value="">Seleccionar estudiante...</option>
+                            {% for estudiante in estudiantes %}
+                            <option value="{{ estudiante.id }}">{{ estudiante.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Monto *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" name="monto" step="0.01" min="0" required 
+                                placeholder="50.00">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Método de Pago *</label>
+                        <select class="form-select" name="metodo_pago" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta">Tarjeta</option>
+                            <option value="transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Referencia (opcional)</label>
+                        <input type="text" class="form-control" name="referencia" 
+                            placeholder="Número de comprobante">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Registrar Pago</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function registrarPago(pagoId) {
+    if (confirm('¿Marcar este pago como pagado?')) {
+        fetch('/admin/pagos/' + pagoId + '/pagar', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

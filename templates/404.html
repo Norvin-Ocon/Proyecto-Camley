@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %} - Página no encontrada{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="error-container">
+                <h1 class="display-1 text-muted">404</h1>
+                <div class="error-icon mb-4">
+                    <i class="bi bi-emoji-frown display-1 text-warning"></i>
+                </div>
+                <h2 class="mb-3">¡Ups! Página no encontrada</h2>
+                <p class="lead mb-4">
+                    La página que estás buscando no existe o ha sido movida.
+                </p>
+                
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="bi bi-compass"></i> Enlaces útiles
+                                </h5>
+                                <div class="list-group list-group-flush">
+                                    <a href="{{ url_for('index') }}" class="list-group-item list-group-item-action">
+                                        <i class="bi bi-house"></i> Volver al inicio
+                                    </a>
+                                    <a href="{{ url_for('login') }}" class="list-group-item list-group-item-action">
+                                        <i class="bi bi-box-arrow-in-right"></i> Iniciar sesión
+                                    </a>
+                                    {% if current_user.is_authenticated %}
+                                        {% if current_user.rol == 'admin' %}
+                                        <a href="{{ url_for('admin_dashboard') }}" class="list-group-item list-group-item-action">
+                                            <i class="bi bi-speedometer2"></i> Panel de administración
+                                        </a>
+                                        {% elif current_user.rol == 'padre' %}
+                                        <a href="{{ url_for('padre_dashboard') }}" class="list-group-item list-group-item-action">
+                                            <i class="bi bi-speedometer2"></i> Panel de padres
+                                        </a>
+                                        {% elif current_user.rol == 'conductor' %}
+                                        <a href="{{ url_for('conductor_dashboard') }}" class="list-group-item list-group-item-action">
+                                            <i class="bi bi-speedometer2"></i> Panel de conductor
+                                        </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button onclick="history.back()" class="btn btn-primary me-2">
+                        <i class="bi bi-arrow-left"></i> Volver atrás
+                    </button>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-house"></i> Ir al inicio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-container {
+    padding: 3rem;
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+.error-icon {
+    animation: bounce 2s infinite;
+}
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+</style>
+{% endblock %}

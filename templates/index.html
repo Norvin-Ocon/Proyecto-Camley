@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %} - Inicio{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary: #4e73df;
+        --success: #1cc88a;
+        --info: #36b9cc;
+        --warning: #f6c23e;
+    }
+    
+    .hero-section {
+        background: linear-gradient(135deg, var(--primary) 0%, #224abe 100%);
+        color: white;
+        padding: 80px 0;
+        border-radius: 0 0 30px 30px;
+        margin-bottom: 40px;
+    }
+    
+    .access-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+        margin-bottom: 20px;
+    }
+    
+    .access-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .btn-access {
+        padding: 20px;
+        font-size: 1.2rem;
+        border-radius: 10px;
+        border: none;
+        transition: all 0.3s;
+    }
+    
+    .btn-access:hover {
+        opacity: 0.9;
+    }
+    
+    .credentials-box {
+        background: #fff3cd;
+        border-left: 5px solid #ffc107;
+        border-radius: 8px;
+    }
+    
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold">
+                    <i class="bi bi-bus-front"></i> Camley Transporte Escolar
+                </h1>
+                <p class="lead fs-4">
+                    Sistema de gestión integral para transporte escolar seguro, eficiente y en tiempo real.
+                </p>
+                <div class="d-flex gap-3 mt-4">
+                    <span class="badge bg-light text-primary p-2">
+                        <i class="bi bi-shield-check"></i> 100% Seguro
+                    </span>
+                    <span class="badge bg-light text-primary p-2">
+                        <i class="bi bi-clock"></i> Tiempo Real
+                    </span>
+                    <span class="badge bg-light text-primary p-2">
+                        <i class="bi bi-phone"></i> Multiplataforma
+                    </span>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <div class="feature-icon text-warning">
+                    <i class="bi bi-bus-front"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Access Cards -->
+<div class="container">
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-10">
+            <h2 class="text-center mb-4 text-primary">
+                <i class="bi bi-door-open"></i> Acceso al Sistema
+            </h2>
+            <p class="text-center text-muted mb-5">
+                Selecciona tu rol para acceder al sistema con tus credenciales
+            </p>
+            
+            <div class="row g-4">
+                <!-- Admin Card -->
+                <div class="col-md-4">
+                    <div class="card access-card h-100 border-primary">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon text-primary">
+                                <i class="bi bi-person-gear"></i>
+                            </div>
+                            <h4 class="card-title text-primary">Administración</h4>
+                            <p class="card-text">
+                                Gestión completa del sistema, usuarios, rutas, pagos y reportes.
+                            </p>
+                            <a href="{{ url_for('login') }}" class="btn btn-primary btn-access w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> Ingresar como Admin
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Parents Card -->
+                <div class="col-md-4">
+                    <div class="card access-card h-100 border-success">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon text-success">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                            <h4 class="card-title text-success">Padres & Tutores</h4>
+                            <p class="card-text">
+                                Seguimiento en tiempo real, notificaciones y comunicación directa.
+                            </p>
+                            <a href="{{ url_for('login') }}" class="btn btn-success btn-access w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> Ingresar como Padre
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Drivers Card -->
+                <div class="col-md-4">
+                    <div class="card access-card h-100 border-info">
+                        <div class="card-body text-center p-4">
+                            <div class="feature-icon text-info">
+                                <i class="bi bi-steering"></i>
+                            </div>
+                            <h4 class="card-title text-info">Conductores</h4>
+                            <p class="card-text">
+                                Control de rutas, registro de asistencia y navegación optimizada.
+                            </p>
+                            <a href="{{ url_for('login') }}" class="btn btn-info btn-access w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> Ingresar como Conductor
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Credentials Box -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="credentials-box p-4 mb-4">
+                <h4 class="text-warning">
+                    <i class="bi bi-key"></i> Credenciales de Prueba
+                </h4>
+                <p class="mb-3">Usa estas credenciales para probar el sistema:</p>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-primary text-white py-2">
+                                <strong>Administrador</strong>
+                            </div>
+                            <div class="card-body p-3">
+                                <p class="mb-1"><i class="bi bi-envelope"></i> <strong>Email:</strong></p>
+                                <code class="d-block mb-2">admin@camley.com</code>
+                                
+                                <p class="mb-1"><i class="bi bi-lock"></i> <strong>Contraseña:</strong></p>
+                                <code>admin123</code>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white py-2">
+                                <strong>Padre/Tutor</strong>
+                            </div>
+                            <div class="card-body p-3">
+                                <p class="mb-1"><i class="bi bi-envelope"></i> <strong>Email:</strong></p>
+                                <code class="d-block mb-2">padre@ejemplo.com</code>
+                                
+                                <p class="mb-1"><i class="bi bi-lock"></i> <strong>Contraseña:</strong></p>
+                                <code>padre123</code>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white py-2">
+                                <strong>Conductor</strong>
+                            </div>
+                            <div class="card-body p-3">
+                                <p class="mb-1"><i class="bi bi-envelope"></i> <strong>Email:</strong></p>
+                                <code class="d-block mb-2">conductor@camley.com</code>
+                                
+                                <p class="mb-1"><i class="bi bi-lock"></i> <strong>Contraseña:</strong></p>
+                                <code>conductor123</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i> 
+                    <strong>Nota:</strong> Estas son credenciales de demostración.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Efectos interactivos
+    document.addEventListener('DOMContentLoaded', function() {
+        // Efecto en botones
+        const buttons = document.querySelectorAll('.btn-access');
+        buttons.forEach(btn => {
+            btn.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.05)';
+            });
+            btn.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+        
+        // Auto-ocultar alerts después de 5 segundos
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                if (alert.parentElement) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            }, 5000);
+        });
+    });
+</script>
+{% endblock %}

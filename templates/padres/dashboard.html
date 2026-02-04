@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %} - Mi Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">
+        <i class="bi bi-speedometer2"></i> Panel de Padres/Tutores
+    </h2>
+    
+    <!-- Bienvenida -->
+    <div class="alert alert-info">
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <i class="bi bi-person-circle fs-1"></i>
+            </div>
+            <div>
+                <h5 class="alert-heading mb-1">Bienvenido, {{ current_user.nombre }}!</h5>
+                <p class="mb-0">Desde aquí puedes monitorear el transporte de tus hijos y gestionar pagos.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sección de estudiantes -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Mis Estudiantes</h5>
+                </div>
+                <div class="card-body">
+                    {% if estudiantes %}
+                    <div class="row">
+                        {% for estudiante in estudiantes %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card student-card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h5 class="card-title">{{ estudiante.nombre }}</h5>
+                                            <p class="card-text">
+                                                <span class="badge bg-info">{{ estudiante.grado }}</span>
+                                                <span class="badge bg-secondary">{{ estudiante.edad }} años</span>
+                                            </p>
+                                        </div>
+                                        <div class="avatar bg-primary text-white rounded-circle" 
+                                            style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                            {{ estudiante.nombre[0] }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block">
+                                            <i class="bi bi-building"></i> 
+                                            {{ estudiante.escuela or 'Escuela no especificada' }}
+                                        </small>
+                                        {% if estudiante.ruta %}
+                                        <small class="text-muted d-block">
+                                            <i class="bi bi-signpost"></i> 
+                                            Ruta: {{ estudiante.ruta.nombre }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ url_for('ver_ruta', estudiante_id=estudiante.id) }}" 
+                                                class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-geo-alt"></i> Ver Ruta
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-people display-1 text-muted"></i>
+                        <p class="text-muted mt-3">No tienes estudiantes asignados</p>
+                        <p class="text-muted">Contacta al administrador para asignar estudiantes</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sección de pagos pendientes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Pagos Pendientes</h5>
+                </div>
+                <div class="card-body">
+                    {% if pagos_pendientes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Estudiante</th>
+                                    <th>Concepto</th>
+                                    <th>Monto</th>
+                                    <th>Vencimiento</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pago in pagos_pendientes %}
+                                <tr>
+                                    <td>{{ pago.estudiante.nombre }}</td>
+                                    <td>Transporte escolar</td>
+                                    <td class="fw-bold">${{ "%.2f"|format(pago.monto) }}</td>
+                                    <td>
+                                        {% if pago.fecha_vencimiento %}
+                                        {{ pago.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                                        {% else %}
+                                        <span class="text-muted">Por definir</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if pago.estado == 'pagado' %}
+                                        <span class="badge bg-success">Pagado</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pendiente</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if pago.estado == 'pendiente' %}
+                                        <button class="btn btn-sm btn-success" 
+                                                onclick="realizarPago({{ pago.id }})">
+                                            <i class="bi bi-credit-card"></i> Pagar
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-circle display-1 text-success"></i>
+                        <p class="text-success mt-3">¡Excelente! No tienes pagos pendientes</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para realizar pago -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-credit-card"></i> Realizar Pago</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="paymentForm">
+                <div class="modal-body">
+                    <div id="paymentDetails"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Método de Pago *</label>
+                        <select class="form-select" name="metodo_pago" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="tarjeta">Tarjeta de Crédito/Débito</option>
+                            <option value="transferencia">Transferencia Bancaria</option>
+                            <option value="paypal">PayPal</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Confirmar Pago</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPagoId = null;
+
+function realizarPago(pagoId) {
+    currentPagoId = pagoId;
+    
+    // Aquí normalmente obtendrías los detalles del pago del servidor
+    document.getElementById('paymentDetails').innerHTML = `
+        <div class="alert alert-info">
+            <p><strong>Proceso de pago simulado</strong></p>
+            <p>En una implementación real, aquí se integraría con una pasarela de pagos.</p>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    modal.show();
+}
+
+document.getElementById('paymentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!currentPagoId) return;
+    
+    // Simular pago exitoso
+    fetch('/padres/pagos/realizar/' + currentPagoId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            metodo_pago: this.metodo_pago.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Pago realizado exitosamente!');
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error de conexión');
+    });
+});
+</script>
+{% endblock %}

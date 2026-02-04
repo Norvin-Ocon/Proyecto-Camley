@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %} - Finanzas{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4"><i class="bi bi-graph-up"></i> Sistema de Finanzas</h2>
+    
+    <!-- Tarjetas de resumen -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card border-start border-primary border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-primary">TOTAL INGRESOS</h6>
+                            <h3 class="mb-0">${{ "%.2f"|format(total_ingresos) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-arrow-up-circle text-primary fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-start border-danger border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-danger">TOTAL GASTOS</h6>
+                            <h3 class="mb-0">${{ "%.2f"|format(total_gastos) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-arrow-down-circle text-danger fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card border-start border-success border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-success">BALANCE</h6>
+                            <h3 class="mb-0">${{ "%.2f"|format(balance) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-calculator text-success fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Botones de acción -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+                            <i class="bi bi-plus-circle"></i> Nuevo Ingreso
+                        </button>
+                        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                            <i class="bi bi-dash-circle"></i> Nuevo Gasto
+                        </button>
+                        <a href="{{ url_for('generar_reporte_finanzas') }}" class="btn btn-outline-info">
+                            <i class="bi bi-file-pdf"></i> Generar PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabs para ingresos/gastos -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#ingresos">
+                        <i class="bi bi-arrow-up-circle"></i> Ingresos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#gastos">
+                        <i class="bi bi-arrow-down-circle"></i> Gastos
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <!-- Tab de Ingresos -->
+                <div class="tab-pane fade show active" id="ingresos">
+                    {% if ingresos %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Descripción</th>
+                                    <th>Monto</th>
+                                    <th>Estudiante</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ingreso in ingresos %}
+                                <tr>
+                                    <td>{{ ingreso.fecha.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-success">{{ ingreso.tipo }}</span>
+                                    </td>
+                                    <td>{{ ingreso.descripcion }}</td>
+                                    <td class="text-success fw-bold">+${{ "%.2f"|format(ingreso.monto) }}</td>
+                                    <td>
+                                        {% if ingreso.estudiante %}
+                                        {{ ingreso.estudiante.nombre }}
+                                        {% else %}
+                                        <span class="text-muted">General</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-arrow-up-circle display-1 text-muted"></i>
+                        <p class="text-muted">No hay ingresos registrados</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Tab de Gastos -->
+                <div class="tab-pane fade" id="gastos">
+                    {% if gastos %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Descripción</th>
+                                    <th>Monto</th>
+                                    <th>Registrado por</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for gasto in gastos %}
+                                <tr>
+                                    <td>{{ gasto.fecha.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ gasto.tipo }}</span>
+                                    </td>
+                                    <td>{{ gasto.descripcion }}</td>
+                                    <td class="text-danger fw-bold">-${{ "%.2f"|format(gasto.monto) }}</td>
+                                    <td>
+                                        {% if gasto.usuario %}
+                                        {{ gasto.usuario.nombre }}
+                                        {% else %}
+                                        <span class="text-muted">Sistema</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-arrow-down-circle display-1 text-muted"></i>
+                        <p class="text-muted">No hay gastos registrados</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nuevo ingreso -->
+<div class="modal fade" id="addIncomeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('agregar_ingreso_manual') }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Nuevo Ingreso</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo *</label>
+                        <select class="form-select" name="tipo" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="pago_estudiante">Pago de Estudiante</option>
+                            <option value="subsidio">Subsidio</option>
+                            <option value="donacion">Donación</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción *</label>
+                        <input type="text" class="form-control" name="descripcion" required 
+                            placeholder="Ej: Pago mensual de transporte">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Monto *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" name="monto" step="0.01" min="0" required
+                                placeholder="50.00">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Registrar Ingreso</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nuevo gasto -->
+<div class="modal fade" id="addExpenseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('agregar_gasto') }}">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-dash-circle"></i> Nuevo Gasto</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo *</label>
+                        <select class="form-select" name="tipo" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="gasolina">Gasolina</option>
+                            <option value="mantenimiento">Mantenimiento Vehículo</option>
+                            <option value="salarios">Salarios</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción *</label>
+                        <input type="text" class="form-control" name="descripcion" required 
+                            placeholder="Ej: Compra de gasolina semanal">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Monto *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" name="monto" step="0.01" min="0" required
+                                placeholder="100.00">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Registrar Gasto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

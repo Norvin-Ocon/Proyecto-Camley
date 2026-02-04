@@ -1,0 +1,605 @@
+{% extends "base.html" %}
+
+{% block title %} - Gestión de Vehículos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-truck"></i> Gestión de Vehículos
+        </h2>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+            <i class="bi bi-plus-circle"></i> Nuevo Vehículo
+        </button>
+    </div>
+    
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Vehículos</h6>
+                            <h3 class="mb-0">{{ vehiculos|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-truck fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">En Operación</h6>
+                            <h3 class="mb-0">
+                                {{ vehiculos|selectattr('estado', 'equalto', 'activo')|list|length }}
+                            </h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-check-circle fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">En Mantenimiento</h6>
+                            <h3 class="mb-0">
+                                {{ vehiculos|selectattr('estado', 'equalto', 'mantenimiento')|list|length }}
+                            </h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-wrench fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Capacidad Total</h6>
+                            <h3 class="mb-0">
+                                {{ vehiculos|sum(attribute='capacidad') }}
+                            </h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-people fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-secondary active" onclick="filterVehicles('all')">
+                            Todos
+                        </button>
+                        <button class="btn btn-outline-success" onclick="filterVehicles('activo')">
+                            Activos
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="filterVehicles('mantenimiento')">
+                            Mantenimiento
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="filterVehicles('inactivo')">
+                            Inactivos
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Buscar por placa o marca..." id="searchVehicle">
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="filterConductor">
+                        <option value="">Todos los conductores</option>
+                        {% for conductor in conductores %}
+                        <option value="{{ conductor.id }}">{{ conductor.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista de vehículos -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Flota de Vehículos</h5>
+        </div>
+        <div class="card-body">
+            {% if vehiculos %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="vehiclesTable">
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Vehículo</th>
+                            <th>Conductor</th>
+                            <th>Estado</th>
+                            <th>Capacidad</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vehiculo in vehiculos %}
+                        <tr data-status="{{ vehiculo.estado }}" 
+                            data-conductor="{{ vehiculo.conductor_id or '' }}"
+                            data-search="{{ vehiculo.placa.lower() }} {{ vehiculo.marca.lower() }} {{ vehiculo.modelo.lower() }}">
+                            <td>
+                                <strong class="text-primary">{{ vehiculo.placa }}</strong>
+                                <br>
+                                <small class="text-muted">ID: {{ vehiculo.id }}</small>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-truck fs-4 text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <strong>{{ vehiculo.marca }} {{ vehiculo.modelo }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            Año: {{ vehiculo.año }}
+                                            {% if vehiculo.kilometraje %}
+                                            • {{ "{:,.0f}".format(vehiculo.kilometraje) }} km
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if vehiculo.conductor %}
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar bg-info text-white rounded-circle me-2" 
+                                        style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">
+                                        {{ vehiculo.conductor.nombre[0] }}
+                                    </div>
+                                    <div>
+                                        <small>{{ vehiculo.conductor.nombre }}</small>
+                                        <br>
+                                        <small class="text-muted">{{ vehiculo.conductor.telefono or 'Sin teléfono' }}</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="badge bg-secondary">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if vehiculo.estado == 'activo' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Activo
+                                </span>
+                                {% elif vehiculo.estado == 'mantenimiento' %}
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-wrench"></i> Mantenimiento
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle"></i> Inactivo
+                                </span>
+                                {% endif %}
+                                
+                                {% if vehiculo.ultimo_mantenimiento %}
+                                <br>
+                                <small class="text-muted">
+                                    Último mantenimiento: {{ vehiculo.ultimo_mantenimiento.strftime('%d/%m/%y') }}
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="text-center">
+                                    <h5 class="mb-0">{{ vehiculo.capacidad }}</h5>
+                                    <small class="text-muted">pasajeros</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" 
+                                            class="btn btn-info"
+                                            onclick="verDetalles({{ vehiculo.id }})"
+                                            data-bs-toggle="tooltip" 
+                                            title="Ver detalles">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    
+                                    <button type="button" 
+                                            class="btn btn-warning"
+                                            onclick="editarVehiculo({{ vehiculo.id }})"
+                                            data-bs-toggle="tooltip" 
+                                            title="Editar vehículo">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    
+                                    <button type="button" 
+                                            class="btn btn-primary"
+                                            onclick="cambiarEstado({{ vehiculo.id }})"
+                                            data-bs-toggle="tooltip" 
+                                            title="Cambiar estado">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                    </button>
+                                    
+                                    {% if not vehiculo.conductor_id %}
+                                    <button type="button" 
+                                            class="btn btn-success"
+                                            onclick="asignarConductor({{ vehiculo.id }})"
+                                            data-bs-toggle="tooltip" 
+                                            title="Asignar conductor">
+                                        <i class="bi bi-person-plus"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="bi bi-truck display-1 text-muted"></i>
+                </div>
+                <h4 class="text-muted">No hay vehículos registrados</h4>
+                <p class="text-muted">Comienza agregando el primer vehículo a la flota</p>
+                <button type="button" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+                    <i class="bi bi-plus-circle"></i> Agregar Primer Vehículo
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar vehículo -->
+<div class="modal fade" id="addVehicleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle"></i> Nuevo Vehículo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('agregar_vehiculo') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Placa *</label>
+                            <input type="text" class="form-control" name="placa" required 
+                                placeholder="Ej: ABC-123" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Marca *</label>
+                            <input type="text" class="form-control" name="marca" required 
+                                placeholder="Ej: Toyota">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Modelo *</label>
+                            <input type="text" class="form-control" name="modelo" required 
+                                placeholder="Ej: Hiace">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Año *</label>
+                            <input type="number" class="form-control" name="año" required min="2000" max="2024"
+                                placeholder="Ej: 2022">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Capacidad (pasajeros) *</label>
+                            <input type="number" class="form-control" name="capacidad" required min="1" max="50"
+                                placeholder="Ej: 15">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Estado *</label>
+                            <select class="form-select" name="estado" required>
+                                <option value="activo">Activo</option>
+                                <option value="mantenimiento">En Mantenimiento</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Conductor Asignado</label>
+                            <select class="form-select" name="conductor_id">
+                                <option value="">Sin asignar</option>
+                                {% for conductor in conductores %}
+                                <option value="{{ conductor.id }}">{{ conductor.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Kilometraje actual</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="kilometraje" 
+                                    placeholder="Ej: 50000">
+                                <span class="input-group-text">km</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" name="observaciones" rows="2"
+                                placeholder="Color, características especiales, etc."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Guardar Vehículo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalles del vehículo -->
+<div class="modal fade" id="vehicleDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-info-circle"></i> Detalles del Vehículo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="vehicleDetailsContent">
+                <!-- Los detalles se cargan aquí via JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para asignar conductor -->
+<div class="modal fade" id="assignDriverModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus"></i> Asignar Conductor
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="assignDriverForm">
+                <div class="modal-body">
+                    <div id="vehicleInfo"></div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Conductor *</label>
+                        <select class="form-select" id="driverSelect" required>
+                            <option value="">Seleccionar conductor...</option>
+                            {% for conductor in conductores %}
+                            <option value="{{ conductor.id }}">{{ conductor.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        El conductor recibirá una notificación sobre la asignación.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Asignar Conductor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentVehicleId = null;
+
+// Filtros
+function filterVehicles(status) {
+    const rows = document.querySelectorAll('#vehiclesTable tbody tr');
+    const buttons = document.querySelectorAll('.btn-group .btn');
+    
+    // Actualizar botones activos
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    rows.forEach(row => {
+        if (status === 'all' || row.getAttribute('data-status') === status) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Búsqueda
+document.getElementById('searchVehicle').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#vehiclesTable tbody tr');
+    
+    rows.forEach(row => {
+        const searchData = row.getAttribute('data-search');
+        if (searchData.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Filtro por conductor
+document.getElementById('filterConductor').addEventListener('change', function() {
+    const conductorId = this.value;
+    const rows = document.querySelectorAll('#vehiclesTable tbody tr');
+    
+    rows.forEach(row => {
+        if (!conductorId || row.getAttribute('data-conductor') === conductorId) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Ver detalles del vehículo
+function verDetalles(vehicleId) {
+    // En una implementación real, esto obtendría los datos del servidor
+    const detalles = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Información General</h6>
+                <p><strong>Placa:</strong> ABC-123</p>
+                <p><strong>Marca/Modelo:</strong> Toyota Hiace</p>
+                <p><strong>Año:</strong> 2022</p>
+                <p><strong>Capacidad:</strong> 15 pasajeros</p>
+            </div>
+            <div class="col-md-6">
+                <h6>Estado y Mantenimiento</h6>
+                <p><strong>Estado:</strong> <span class="badge bg-success">Activo</span></p>
+                <p><strong>Kilometraje:</strong> 45,230 km</p>
+                <p><strong>Último mantenimiento:</strong> 15/01/2024</p>
+                <p><strong>Próximo mantenimiento:</strong> 15/02/2024</p>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-12">
+                <h6>Historial de Asignaciones</h6>
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <small>Carlos López (01/02/2024 - Actual)</small>
+                    </li>
+                    <li class="list-group-item">
+                        <small>Juan Pérez (15/01/2024 - 31/01/2024)</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('vehicleDetailsContent').innerHTML = detalles;
+    const modal = new bootstrap.Modal(document.getElementById('vehicleDetailsModal'));
+    modal.show();
+}
+
+// Asignar conductor
+function asignarConductor(vehicleId) {
+    currentVehicleId = vehicleId;
+    
+    document.getElementById('vehicleInfo').innerHTML = `
+        <div class="alert alert-info">
+            <strong>Vehículo ID:</strong> ${vehicleId}<br>
+            <small>Selecciona el conductor a asignar</small>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('assignDriverModal'));
+    modal.show();
+}
+
+// Enviar asignación de conductor
+document.getElementById('assignDriverForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!currentVehicleId) return;
+    
+    const conductorId = document.getElementById('driverSelect').value;
+    
+    fetch('/admin/vehiculos/' + currentVehicleId + '/asignar-conductor', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            conductor_id: conductorId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error de conexión');
+    });
+});
+
+// Cambiar estado del vehículo
+function cambiarEstado(vehicleId) {
+    const nuevoEstado = prompt('Nuevo estado (activo, mantenimiento, inactivo):');
+    
+    if (nuevoEstado && ['activo', 'mantenimiento', 'inactivo'].includes(nuevoEstado.toLowerCase())) {
+        fetch('/admin/vehiculos/' + vehicleId + '/cambiar-estado', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                estado: nuevoEstado
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error de conexión');
+        });
+    }
+}
+
+// Editar vehículo
+function editarVehiculo(vehicleId) {
+    // Redirigir a página de edición
+    alert('Funcionalidad de edición en desarrollo. Vehículo ID: ' + vehicleId);
+}
+
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
+</script>
+{% endblock %}

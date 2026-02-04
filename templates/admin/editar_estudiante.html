@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-pencil"></i> Editar Estudiante
+        </h2>
+        <a href="{{ url_for('admin_estudiantes') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('editar_estudiante', id=estudiante.id) }}">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nombre completo *</label>
+                        <input type="text" class="form-control" name="nombre" 
+                            value="{{ estudiante.nombre }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Edad *</label>
+                        <input type="number" class="form-control" name="edad" 
+                            value="{{ estudiante.edad }}" required min="3" max="18">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Grado *</label>
+                        <select class="form-select" name="grado" required>
+                            <option value="">Seleccionar...</option>
+                            {% for grado_opcion in ['Pre-escolar', '1er Grado', '2do Grado', '3er Grado', 
+                                                '4to Grado', '5to Grado', '6to Grado', 'Secundaria'] %}
+                            <option value="{{ grado_opcion }}" 
+                                    {% if estudiante.grado == grado_opcion %}selected{% endif %}>
+                                {{ grado_opcion }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">Escuela</label>
+                        <input type="text" class="form-control" name="escuela" 
+                            value="{{ estudiante.escuela or '' }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Padre/Tutor</label>
+                        <select class="form-select" name="padre_id">
+                            <option value="">Sin asignar</option>
+                            {% for padre in padres %}
+                            <option value="{{ padre.id }}" 
+                                    {% if estudiante.padre_id == padre.id %}selected{% endif %}>
+                                {{ padre.nombre }} ({{ padre.email }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Ruta Asignada</label>
+                        <select class="form-select" name="ruta_id">
+                            <option value="">Sin ruta</option>
+                            {% for ruta in rutas %}
+                            <option value="{{ ruta.id }}" 
+                                    {% if estudiante.ruta_id == ruta.id %}selected{% endif %}>
+                                {{ ruta.nombre }} ({{ ruta.hora_inicio }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-danger" 
+                            onclick="confirmarEliminacion({{ estudiante.id }})">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarEliminacion(estudianteId) {
+    if (confirm('¿Estás seguro de eliminar este estudiante? También se eliminarán sus pagos.')) {
+        fetch('/admin/estudiantes/eliminar/' + estudianteId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                window.location.href = '/admin/estudiantes';
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

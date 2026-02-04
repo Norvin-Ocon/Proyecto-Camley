@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+
+{% block title %} - Gestión de Conductores{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-steering"></i> Gestión de Conductores
+        </h2>
+        <a href="{{ url_for('admin_conductores') }}?estado=pendientes" 
+        class="btn btn-warning">
+            <i class="bi bi-clock-history"></i> Ver Pendientes
+            {% if conductores_pendientes %}
+            <span class="badge bg-danger">{{ conductores_pendientes }}</span>
+            {% endif %}
+        </a>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('admin_conductores') }}?estado=todos" 
+                        class="btn btn-outline-secondary {% if estado_actual == 'todos' %}active{% endif %}">
+                            Todos
+                        </a>
+                        <a href="{{ url_for('admin_conductores') }}?estado=activos" 
+                        class="btn btn-outline-success {% if estado_actual == 'activos' %}active{% endif %}">
+                            Activos
+                        </a>
+                        <a href="{{ url_for('admin_conductores') }}?estado=pendientes" 
+                        class="btn btn-outline-warning {% if estado_actual == 'pendientes' %}active{% endif %}">
+                            Pendientes
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Buscar conductor..." id="searchInput">
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addDriverModal">
+                        <i class="bi bi-person-plus"></i> Nuevo Conductor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tarjetas de estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Conductores</h6>
+                            <h3 class="mb-0">{{ conductores|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-people-fill fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Activos</h6>
+                            <h3 class="mb-0">
+                                {{ conductores|selectattr('activo')|list|length }}
+                            </h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-check-circle-fill fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Pendientes</h6>
+                            <h3 class="mb-0">
+                                {{ conductores|rejectattr('activo')|list|length }}
+                            </h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-clock-history fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Con Rutas</h6>
+                            <h3 class="mb-0">
+                                {{ conductores_con_rutas }}
+                            </h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-signpost fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista de conductores -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Listado de Conductores</h5>
+        </div>
+        <div class="card-body">
+            {% if conductores %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="driversTable">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Contacto</th>
+                            <th>Estado</th>
+                            <th>Ruta Asignada</th>
+                            <th>Vehículo</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for conductor in conductores %}
+                        <tr data-search="{{ conductor.nombre.lower() }} {{ conductor.email.lower() }} {{ conductor.telefono or '' }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar bg-primary text-white rounded-circle me-3" 
+                                        style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                        {{ conductor.nombre[0] }}
+                                    </div>
+                                    <div>
+                                        <strong>{{ conductor.nombre }}</strong>
+                                        <br>
+                                        <small class="text-muted">ID: {{ conductor.id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <small class="d-block">
+                                        <i class="bi bi-envelope"></i> {{ conductor.email }}
+                                    </small>
+                                    {% if conductor.telefono %}
+                                    <small class="d-block">
+                                        <i class="bi bi-telephone"></i> {{ conductor.telefono }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if conductor.activo %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Activo
+                                </span>
+                                {% else %}
+                                <span class="badge bg-warning">
+                                    <i class="bi bi-clock-history"></i> Pendiente
+                                </span>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">
+                                    Registrado: {{ conductor.fecha_registro.strftime('%d/%m/%Y') }}
+                                </small>
+                            </td>
+                            <td>
+                                {% set ruta_conductor = rutas_por_conductor.get(conductor.id) %}
+                                {% if ruta_conductor %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-signpost"></i> {{ ruta_conductor.nombre }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">
+                                    Sin ruta asignada
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% set vehiculo_conductor = vehiculos_por_conductor.get(conductor.id) %}
+                                {% if vehiculo_conductor %}
+                                <div>
+                                    <small class="d-block">
+                                        <i class="bi bi-truck"></i> {{ vehiculo_conductor.placa }}
+                                    </small>
+                                    <small class="text-muted">
+                                        {{ vehiculo_conductor.marca }} {{ vehiculo_conductor.modelo }}
+                                    </small>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">Sin vehículo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    {% if not conductor.activo %}
+                                    <button type="button" 
+                                            class="btn btn-success"
+                                            onclick="aprobarConductor({{ conductor.id }})"
+                                            data-bs-toggle="tooltip" 
+                                            title="Aprobar conductor">
+                                        <i class="bi bi-check"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <button type="button" 
+                                            class="btn btn-info"
+                                            onclick="editarConductor({{ conductor.id }})"
+                                            data-bs-toggle="tooltip" 
+                                            title="Editar información">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    
+                                    <button type="button" 
+                                            class="btn btn-warning"
+                                            onclick="asignarVehiculo({{ conductor.id }})"
+                                            data-bs-toggle="tooltip" 
+                                            title="Asignar vehículo">
+                                        <i class="bi bi-truck"></i>
+                                    </button>
+                                    
+                                    <button type="button" 
+                                            class="btn btn-danger"
+                                            onclick="eliminarConductor({{ conductor.id }})"
+                                            data-bs-toggle="tooltip" 
+                                            title="Desactivar conductor">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="bi bi-steering display-1 text-muted"></i>
+                </div>
+                <h4 class="text-muted">No hay conductores registrados</h4>
+                <p class="text-muted">Comienza agregando el primer conductor</p>
+                <button type="button" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#addDriverModal">
+                    <i class="bi bi-person-plus"></i> Agregar Primer Conductor
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar conductor -->
+<div class="modal fade" id="addDriverModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus"></i> Nuevo Conductor
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('registro') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre completo *</label>
+                            <input type="text" class="form-control" name="nombre" required 
+                                placeholder="Ej: Carlos Antonio López">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email *</label>
+                            <input type="email" class="form-control" name="email" required 
+                                placeholder="ejemplo@camley.com">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contraseña *</label>
+                            <input type="password" class="form-control" name="password" required 
+                                placeholder="Mínimo 6 caracteres">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Teléfono *</label>
+                            <input type="tel" class="form-control" name="telefono" required 
+                                placeholder="Ej: 8123-4567">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Dirección</label>
+                            <input type="text" class="form-control" name="direccion"
+                                placeholder="Dirección de residencia">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Estado inicial *</label>
+                            <select class="form-select" name="activo" required>
+                                <option value="true">Activo inmediatamente</option>
+                                <option value="false">Pendiente de aprobación</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea class="form-control" name="observaciones" rows="2"
+                                placeholder="Licencia, experiencia, etc."></textarea>
+                    </div>
+                    
+                    <input type="hidden" name="rol" value="conductor">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Guardar Conductor
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para asignar vehículo -->
+<div class="modal fade" id="assignVehicleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="bi bi-truck"></i> Asignar Vehículo
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="assignVehicleForm">
+                <div class="modal-body">
+                    <div id="driverInfo"></div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Vehículo *</label>
+                        <select class="form-select" id="vehicleSelect" required>
+                            <option value="">Seleccionar vehículo...</option>
+                            {% for vehiculo in vehiculos_disponibles %}
+                            <option value="{{ vehiculo.id }}">
+                                {{ vehiculo.placa }} - {{ vehiculo.marca }} {{ vehiculo.modelo }}
+                                ({{ vehiculo.capacidad }} pax)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        El conductor actual recibirá una notificación sobre la asignación.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Asignar Vehículo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentConductorId = null;
+
+// Búsqueda en tiempo real
+document.getElementById('searchInput').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#driversTable tbody tr');
+    
+    rows.forEach(row => {
+        const searchData = row.getAttribute('data-search');
+        if (searchData.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Aprobar conductor
+function aprobarConductor(conductorId) {
+    if (confirm('¿Aprobar este conductor? Podrá iniciar sesión inmediatamente.')) {
+        fetch('/admin/conductores/' + conductorId + '/aprobar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error de conexión');
+        });
+    }
+}
+
+// Asignar vehículo
+function asignarVehiculo(conductorId) {
+    currentConductorId = conductorId;
+    
+    // Obtener información del conductor
+    fetch('/api/conductor/' + conductorId + '/info')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('driverInfo').innerHTML = `
+                    <div class="alert alert-info">
+                        <strong>Conductor:</strong> ${data.conductor.nombre}<br>
+                        <small>${data.conductor.email}</small>
+                    </div>
+                `;
+                
+                const modal = new bootstrap.Modal(document.getElementById('assignVehicleModal'));
+                modal.show();
+            }
+        })
+        .catch(error => {
+            // Si no hay API, mostrar modal básico
+            const modal = new bootstrap.Modal(document.getElementById('assignVehicleModal'));
+            modal.show();
+        });
+}
+
+// Enviar asignación de vehículo
+document.getElementById('assignVehicleForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!currentConductorId) return;
+    
+    const vehicleId = document.getElementById('vehicleSelect').value;
+    
+    fetch('/admin/conductores/' + currentConductorId + '/asignar-vehiculo', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            vehiculo_id: vehicleId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error de conexión');
+    });
+});
+
+// Editar conductor
+function editarConductor(conductorId) {
+    // Redirigir a página de edición o mostrar modal
+    alert('Funcionalidad de edición en desarrollo. Conductor ID: ' + conductorId);
+}
+
+// Eliminar/desactivar conductor
+function eliminarConductor(conductorId) {
+    if (confirm('¿Desactivar este conductor? No podrá iniciar sesión hasta que sea reactivado.')) {
+        fetch('/admin/conductores/' + conductorId + '/desactivar', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error de conexión');
+        });
+    }
+}
+
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
+</script>
+{% endblock %}
