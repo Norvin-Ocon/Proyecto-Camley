@@ -174,7 +174,7 @@ def push_unsubscribe():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Página de login general"""
-    if current_user.is_authenticated:
+    if current_user.is_authenticated and request.method == 'GET':
         if current_user.rol == 'admin':
             return redirect(url_for('admin_dashboard'))
         elif current_user.rol == 'padre':
@@ -182,6 +182,9 @@ def login():
         elif current_user.rol == 'conductor':
             return redirect(url_for('conductor_dashboard'))
     
+    if current_user.is_authenticated and request.method == 'POST':
+        logout_user()
+
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
