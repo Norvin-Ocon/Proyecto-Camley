@@ -282,9 +282,10 @@
                     {% else %}
                         <!-- Modo Oscuro para usuarios no autenticados -->
                         <li class="nav-item">
-                            <button class="btn btn-outline-light" id="toggleModoOscuro">
+                            <a class="btn btn-outline-light" id="toggleModoOscuro"
+                               href="{{ url_for('toggle_modo_oscuro', next=request.full_path) }}">
                                 <i class="fas fa-moon"></i>
-                            </button>
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
