@@ -307,25 +307,21 @@ function agregarGasto() {
 
 // ==================== MODO OSCURO ====================
 
-function toggleModoOscuro() {
-    const button = event.target;
-    const originalText = showLoading(button);
+function toggleModoOscuro(event) {
+    const button = (event && event.currentTarget) ? event.currentTarget : event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
+    button.disabled = true;
     
-    fetch('/toggle_modo_oscuro', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        location.reload();
-    })
-    .catch(error => {
-        showNotification('Error al cambiar modo: ' + error, 'danger');
-        restoreButton(button, originalText);
-    });
+    fetch('/toggle_modo_oscuro', { method: 'POST' })
+        .then(response => response.json())
+        .then(() => {
+            location.reload();
+        })
+        .catch(error => {
+            showNotification('Error al cambiar modo: ' + error, 'danger');
+            restoreButton(button, originalText);
+        });
 }
 
 // ==================== INICIALIZACIÓN ====================
