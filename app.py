@@ -89,6 +89,10 @@ def manifest():
 def service_worker():
     return send_from_directory(app.root_path, 'service-worker.js')
 
+@app.route('/health')
+def health():
+    return 'ok', 200
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Página de login general"""
