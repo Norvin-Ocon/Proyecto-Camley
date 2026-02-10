@@ -1812,10 +1812,13 @@ def eliminar_vehiculo(vehiculo_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ==================== MODO OSCURO ====================
-@app.route('/toggle_modo_oscuro', methods=['POST'])
+@app.route('/toggle_modo_oscuro', methods=['POST', 'GET'])
 def toggle_modo_oscuro():
     """Alternar modo oscuro en sesión"""
     session['modo_oscuro'] = not session.get('modo_oscuro', False)
+    if request.method == 'GET':
+        next_url = request.args.get('next') or request.referrer or url_for('index')
+        return redirect(next_url)
     return jsonify({'modo_oscuro': session['modo_oscuro']})
 
 # ==================== NOTIFICACIONES ====================
