@@ -473,6 +473,19 @@
                         .catch(() => {});
                 });
             });
+
+            // Toggle modo oscuro (fallback global)
+            const toggleBtn = document.getElementById('toggleModoOscuro');
+            if (toggleBtn && !toggleBtn.dataset.bound) {
+                toggleBtn.dataset.bound = 'true';
+                toggleBtn.addEventListener('click', () => {
+                    toggleBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
+                    toggleBtn.disabled = true;
+                    fetch('/toggle_modo_oscuro', { method: 'POST' })
+                        .then(() => location.reload())
+                        .catch(() => location.reload());
+                });
+            }
         });
     </script>
     
