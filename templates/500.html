@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %} - Error del Servidor{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center">
+        <h1 class="display-4 text-danger"><i class="bi bi-exclamation-triangle"></i> Error 500</h1>
+        <p class="lead">Ocurrió un error interno. Intenta nuevamente en unos minutos.</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary mt-3">
+            <i class="bi bi-house"></i> Volver al inicio
+        </a>
+    </div>
+</div>
+{% endblock %}

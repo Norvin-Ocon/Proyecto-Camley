@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, session, send_from_directory
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from database import app, db, Usuario, Estudiante, Ruta, Pago, Gasto, Ingreso, Vehiculo, Notificacion, Asistencia, UbicacionVehiculo, AsistenciaManual, TicketSoporte
+from database import app, db, Usuario, Estudiante, Ruta, Pago, Gasto, Ingreso, Vehiculo, Notificacion, Asistencia, UbicacionVehiculo, AsistenciaManual, TicketSoporte, crear_usuarios_ejemplo
 from datetime import datetime, timedelta
 import json
 import os
@@ -11,6 +11,17 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 import calendar
+
+# ==================== INICIALIZAR DB EN PRODUCCIÓN ====================
+def init_db():
+    try:
+        with app.app_context():
+            db.create_all()
+            crear_usuarios_ejemplo()
+    except Exception as e:
+        print(f"DB init error: {e}")
+
+init_db()
 
 # ==================== CONFIGURACIÓN FLASK-LOGIN ====================
 login_manager = LoginManager()
@@ -69,6 +80,14 @@ def inject_now():
 def index():
     """Página principal"""
     return render_template('index.html')
+
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory(app.root_path, 'manifest.json')
+
+@app.route('/service-worker.js')
+def service_worker():
+    return send_from_directory(app.root_path, 'service-worker.js')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
