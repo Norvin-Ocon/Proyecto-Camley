@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, session, send_from_directory
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from database import app, db, Usuario, Estudiante, Ruta, Pago, Gasto, Ingreso, Vehiculo, Notificacion, Asistencia, UbicacionVehiculo, AsistenciaManual, TicketSoporte, crear_usuarios_ejemplo
+from database import app, db, Usuario, Estudiante, Ruta, Pago, Gasto, Ingreso, Vehiculo, Notificacion, Asistencia, UbicacionVehiculo, UbicacionHistorial, AsistenciaManual, TicketSoporte, crear_usuarios_ejemplo
 from datetime import datetime, timedelta
 import json
 import os
@@ -1015,6 +1015,14 @@ def actualizar_ubicacion_conductor():
             )
             db.session.add(registro)
         
+        historial = UbicacionHistorial(
+            conductor_id=current_user.id,
+            lat=float(lat),
+            lng=float(lng),
+            fecha=datetime.utcnow()
+        )
+        db.session.add(historial)
+
         db.session.commit()
         return jsonify({'success': True, 'message': 'Ubicación actualizada'})
     except Exception as e:
@@ -1041,6 +1049,22 @@ def api_conductor_ubicacion(id):
         'lng': ubicacion.lng,
         'ultima_actualizacion': ubicacion.ultima_actualizacion.strftime('%Y-%m-%d %H:%M:%S')
     })
+
+@app.route('/api/conductores/<int:id>/historial')
+@login_required
+def api_conductor_historial(id):
+    """Historial reciente de ubicaciones de un conductor"""
+    if current_user.rol != 'admin':
+        return jsonify({'success': False, 'error': 'No autorizado'}), 403
+
+    limit = int(request.args.get('limit', 200))
+    puntos = UbicacionHistorial.query.filter_by(conductor_id=id).order_by(UbicacionHistorial.fecha.desc()).limit(limit).all()
+    data = [{
+        'lat': p.lat,
+        'lng': p.lng,
+        'fecha': p.fecha.strftime('%Y-%m-%d %H:%M:%S')
+    } for p in reversed(puntos)]
+    return jsonify({'success': True, 'puntos': data})
 
 @app.route('/admin/conductores/asignar_ruta/<int:id>', methods=['POST'])
 @login_required

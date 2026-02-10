@@ -262,6 +262,18 @@ class UbicacionVehiculo(db.Model):
     def __repr__(self):
         return f'<UbicacionVehiculo {self.conductor_id}>'
 
+class UbicacionHistorial(db.Model):
+    """Historial de ubicaciones por conductor"""
+    __tablename__ = 'ubicacion_historial'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    conductor_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    lat = db.Column(db.Float, nullable=False)
+    lng = db.Column(db.Float, nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    conductor = db.relationship('Usuario', foreign_keys=[conductor_id])
+
 # ==================== FUNCIONES AUXILIARES ====================
 
 def crear_usuarios_ejemplo():
