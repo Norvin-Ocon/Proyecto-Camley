@@ -120,7 +120,9 @@
                                     <td>{{ ingreso.descripcion }}</td>
                                     <td class="text-success fw-bold">+C$ {{ "%.2f"|format(ingreso.monto) }}</td>
                                     <td>
-                                        <span class="text-muted">General</span>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarIngreso({{ ingreso.id }})">
+                                            <i class="bi bi-trash"></i> Eliminar
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -159,7 +161,9 @@
                                     <td>{{ gasto.descripcion }}</td>
                                     <td class="text-danger fw-bold">-C$ {{ "%.2f"|format(gasto.monto) }}</td>
                                     <td>
-                                        <span class="text-muted">Sistema</span>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarGasto({{ gasto.id }})">
+                                            <i class="bi bi-trash"></i> Eliminar
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -264,4 +268,30 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+function eliminarIngreso(id) {
+    if (!confirm('¿Eliminar este ingreso?')) return;
+    fetch(`/admin/finanzas/ingresos/${id}/eliminar`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert('Error: ' + data.error);
+        })
+        .catch(() => alert('Error de conexión'));
+}
+
+function eliminarGasto(id) {
+    if (!confirm('¿Eliminar este gasto?')) return;
+    fetch(`/admin/finanzas/gastos/${id}/eliminar`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert('Error: ' + data.error);
+        })
+        .catch(() => alert('Error de conexión'));
+}
+</script>
 {% endblock %}

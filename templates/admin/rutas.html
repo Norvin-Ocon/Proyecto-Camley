@@ -131,6 +131,10 @@
                             <i class="fas {% if ruta.activa %}fa-toggle-off{% else %}fa-toggle-on{% endif %}"></i>
                             {% if ruta.activa %}Desactivar{% else %}Activar{% endif %}
                         </button>
+                        <button class="btn btn-sm btn-outline-danger"
+                                onclick="eliminarRuta({{ ruta.id }}, '{{ ruta.nombre }}')">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
                     </div>
                 </div>
             </div>
@@ -315,6 +319,17 @@ function agregarRuta(event) {
         button.innerHTML = originalText;
         button.disabled = false;
     });
+}
+
+function eliminarRuta(rutaId, nombre) {
+    if (!confirm(`¿Eliminar la ruta "${nombre}"? Se quitará de estudiantes asignados.`)) return;
+    fetch(`/admin/rutas/${rutaId}/eliminar`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert('Error: ' + data.error);
+        })
+        .catch(() => alert('Error de conexión'));
 }
 
 function filterRutas() {

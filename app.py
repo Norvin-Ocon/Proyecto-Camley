@@ -1883,6 +1883,49 @@ def eliminar_vehiculo(vehiculo_id):
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/admin/rutas/<int:ruta_id>/eliminar', methods=['POST'])
+@login_required
+def eliminar_ruta(ruta_id):
+    if current_user.rol != 'admin':
+        return jsonify({'success': False, 'error': 'No autorizado'}), 403
+    ruta = Ruta.query.get_or_404(ruta_id)
+    try:
+        Estudiante.query.filter_by(ruta_id=ruta.id).update({'ruta_id': None})
+        db.session.delete(ruta)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/finanzas/ingresos/<int:ingreso_id>/eliminar', methods=['POST'])
+@login_required
+def eliminar_ingreso(ingreso_id):
+    if current_user.rol != 'admin':
+        return jsonify({'success': False, 'error': 'No autorizado'}), 403
+    ingreso = Ingreso.query.get_or_404(ingreso_id)
+    try:
+        db.session.delete(ingreso)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/finanzas/gastos/<int:gasto_id>/eliminar', methods=['POST'])
+@login_required
+def eliminar_gasto(gasto_id):
+    if current_user.rol != 'admin':
+        return jsonify({'success': False, 'error': 'No autorizado'}), 403
+    gasto = Gasto.query.get_or_404(gasto_id)
+    try:
+        db.session.delete(gasto)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # ==================== MODO OSCURO ====================
 @app.route('/toggle_modo_oscuro', methods=['POST', 'GET'])
 def toggle_modo_oscuro():
