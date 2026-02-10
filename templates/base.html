@@ -264,17 +264,22 @@
                                     </div>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item" href="#">
-                                        <i class="fas fa-user me-2"></i> Mi Perfil
-                                    </a>
-                                </li>
-                                <!-- Modo Oscuro Toggle -->
-                                <li>
-                                    <button class="dropdown-item" id="toggleModoOscuro">
-                                        <i class="fas {% if session.get('modo_oscuro') %}fa-sun{% else %}fa-moon{% endif %} me-2"></i>
-                                        {% if session.get('modo_oscuro') %}Modo Claro{% else %}Modo Oscuro{% endif %}
-                                    </button>
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-user me-2"></i> Mi Perfil
+                            </a>
+                        </li>
+                        <li>
+                            <button class="dropdown-item" id="enablePushBtn">
+                                <i class="fas fa-bell me-2"></i> Activar Notificaciones
+                            </button>
+                        </li>
+                        <!-- Modo Oscuro Toggle -->
+                        <li>
+                            <button class="dropdown-item" id="toggleModoOscuro">
+                                <i class="fas {% if session.get('modo_oscuro') %}fa-sun{% else %}fa-moon{% endif %} me-2"></i>
+                                {% if session.get('modo_oscuro') %}Modo Claro{% else %}Modo Oscuro{% endif %}
+                            </button>
                                 </li>
                                 
                                 <li><hr class="dropdown-divider"></li>
@@ -498,7 +503,52 @@
                         });
                 });
             }
+
+            // Activar notificaciones push
+            const enablePushBtn = document.getElementById('enablePushBtn');
+            if (enablePushBtn) {
+                enablePushBtn.addEventListener('click', async () => {
+                    if (!('serviceWorker' in navigator)) {
+                        showNotification('❌ Tu navegador no soporta notificaciones', 'danger');
+                        return;
+                    }
+                    const permission = await Notification.requestPermission();
+                    if (permission !== 'granted') {
+                        showNotification('❌ Permiso de notificaciones denegado', 'warning');
+                        return;
+                    }
+                    const reg = await navigator.serviceWorker.ready;
+                    const resp = await fetch('/api/push/public_key');
+                    const data = await resp.json();
+                    const publicKey = data.publicKey;
+                    if (!publicKey) {
+                        showNotification('❌ No hay clave pública configurada', 'danger');
+                        return;
+                    }
+                    const sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(publicKey)
+                    });
+                    await fetch('/api/push/subscribe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(sub)
+                    });
+                    showNotification('✅ Notificaciones activadas', 'success');
+                });
+            }
         });
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
     </script>
     
     {% block scripts %}{% endblock %}

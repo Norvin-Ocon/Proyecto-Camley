@@ -274,6 +274,19 @@ class UbicacionHistorial(db.Model):
     
     conductor = db.relationship('Usuario', foreign_keys=[conductor_id])
 
+class PushSubscription(db.Model):
+    """Suscripciones Web Push"""
+    __tablename__ = 'push_subscription'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
+    endpoint = db.Column(db.Text, nullable=False, unique=True)
+    p256dh = db.Column(db.String(256), nullable=False)
+    auth = db.Column(db.String(256), nullable=False)
+    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    usuario = db.relationship('Usuario', foreign_keys=[usuario_id])
+
 # ==================== FUNCIONES AUXILIARES ====================
 
 def crear_usuarios_ejemplo():

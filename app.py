@@ -1,10 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, session, send_from_directory
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from database import app, db, Usuario, Estudiante, Ruta, Pago, Gasto, Ingreso, Vehiculo, Notificacion, Asistencia, UbicacionVehiculo, UbicacionHistorial, AsistenciaManual, TicketSoporte, crear_usuarios_ejemplo
+from database import app, db, Usuario, Estudiante, Ruta, Pago, Gasto, Ingreso, Vehiculo, Notificacion, Asistencia, UbicacionVehiculo, UbicacionHistorial, PushSubscription, AsistenciaManual, TicketSoporte, crear_usuarios_ejemplo
 from datetime import datetime, timedelta
 import json
 import os
 from io import BytesIO
+from pywebpush import webpush, WebPushException
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -44,7 +45,40 @@ def crear_notificacion(usuario_id, tipo, mensaje, link=None):
     )
     db.session.add(notif)
     db.session.commit()
+    enviar_push_usuario(usuario_id, 'Camley Transporte', mensaje, link)
     return notif
+
+def enviar_push_usuario(usuario_id, titulo, mensaje, url=None):
+    """Enviar notificación push a un usuario"""
+    vapid_public = os.getenv('VAPID_PUBLIC_KEY')
+    vapid_private = os.getenv('VAPID_PRIVATE_KEY')
+    vapid_email = os.getenv('VAPID_EMAIL', 'mailto:admin@camley.com')
+    if not vapid_public or not vapid_private:
+        return
+
+    subs = PushSubscription.query.filter_by(usuario_id=usuario_id).all()
+    payload = json.dumps({
+        'title': titulo,
+        'body': mensaje,
+        'url': url or '/'
+    })
+    for sub in subs:
+        try:
+            webpush(
+                subscription_info={
+                    "endpoint": sub.endpoint,
+                    "keys": {
+                        "p256dh": sub.p256dh,
+                        "auth": sub.auth
+                    }
+                },
+                data=payload,
+                vapid_private_key=vapid_private,
+                vapid_claims={"sub": vapid_email}
+            )
+        except WebPushException:
+            # Si falla la suscripción, se ignora para no romper el flujo
+            continue
 
 def calcular_vencimiento(semanas=1):
     """Calcular fecha de vencimiento basada en semanas"""
@@ -92,6 +126,50 @@ def service_worker():
 @app.route('/health')
 def health():
     return 'ok', 200
+
+@app.route('/api/push/public_key')
+def push_public_key():
+    return jsonify({'publicKey': os.getenv('VAPID_PUBLIC_KEY', '')})
+
+@app.route('/api/push/subscribe', methods=['POST'])
+@login_required
+def push_subscribe():
+    data = request.get_json(silent=True) or {}
+    endpoint = data.get('endpoint')
+    keys = data.get('keys', {})
+    p256dh = keys.get('p256dh')
+    auth = keys.get('auth')
+    if not endpoint or not p256dh or not auth:
+        return jsonify({'success': False, 'error': 'Datos de suscripción inválidos'}), 400
+
+    existente = PushSubscription.query.filter_by(endpoint=endpoint).first()
+    if existente:
+        existente.usuario_id = current_user.id
+        existente.p256dh = p256dh
+        existente.auth = auth
+    else:
+        sub = PushSubscription(
+            usuario_id=current_user.id,
+            endpoint=endpoint,
+            p256dh=p256dh,
+            auth=auth
+        )
+        db.session.add(sub)
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/push/unsubscribe', methods=['POST'])
+@login_required
+def push_unsubscribe():
+    data = request.get_json(silent=True) or {}
+    endpoint = data.get('endpoint')
+    if not endpoint:
+        return jsonify({'success': False, 'error': 'Endpoint requerido'}), 400
+    sub = PushSubscription.query.filter_by(endpoint=endpoint, usuario_id=current_user.id).first()
+    if sub:
+        db.session.delete(sub)
+        db.session.commit()
+    return jsonify({'success': True})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
