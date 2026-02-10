@@ -6,7 +6,11 @@ import os
 # ==================== CONFIGURACIÓN ====================
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'camley-transporte-escolar-2024-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///camley_transporte.db'
+db_uri = os.getenv('DATABASE_URL', 'sqlite:///camley_transporte.db')
+# SQLAlchemy requiere "postgresql://" en lugar de "postgres://"
+if db_uri.startswith('postgres://'):
+    db_uri = db_uri.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
