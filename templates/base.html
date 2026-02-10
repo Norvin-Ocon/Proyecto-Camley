@@ -171,6 +171,12 @@
                 
                 <!-- Right Side Navbar -->
                 <ul class="navbar-nav ms-auto">
+                    <!-- Install PWA button (shows when available) -->
+                    <li class="nav-item me-2 d-none" id="installPWAWrapper">
+                        <button class="btn btn-outline-light" id="installPWA">
+                            <i class="fas fa-download"></i> Instalar App
+                        </button>
+                    </li>
                     {% if current_user.is_authenticated %}
                         <!-- Notificaciones -->
                         <li class="nav-item dropdown">
@@ -385,6 +391,8 @@
             const installBtn = document.getElementById('installPWA');
             if (installBtn) {
                 installBtn.classList.remove('d-none');
+                const wrapper = document.getElementById('installPWAWrapper');
+                if (wrapper) wrapper.classList.remove('d-none');
                 installBtn.addEventListener('click', installPWA);
             }
         }
