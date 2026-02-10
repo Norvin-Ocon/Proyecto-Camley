@@ -300,6 +300,15 @@ def agregar_estudiante():
         if not genero:
             return jsonify({'success': False, 'error': 'Género requerido'}), 400
 
+        existente = Estudiante.query.filter_by(
+            nombre=nombre,
+            grado=grado,
+            escuela=escuela,
+            padre_id=int(padre_id) if padre_id else None
+        ).first()
+        if existente:
+            return jsonify({'success': False, 'error': 'Estudiante ya existe con los mismos datos'}), 400
+
         nuevo_estudiante = Estudiante(
             nombre=nombre,
             edad=edad,
@@ -468,6 +477,7 @@ def registrar_pago_admin():
         estudiante_id = request.form.get('estudiante_id')
         monto = float(request.form.get('monto', 0))
         metodo_pago = request.form.get('metodo_pago')
+        estado = request.form.get('estado', 'pendiente')
         referencia = request.form.get('referencia', '')
         fecha_vencimiento_str = request.form.get('fecha_vencimiento')
         
@@ -489,14 +499,33 @@ def registrar_pago_admin():
         pago = Pago(
             estudiante_id=estudiante_id,
             monto=monto,
-            estado='pendiente',
+            estado=estado,
             metodo_pago=metodo_pago,
             referencia=referencia,
             fecha_vencimiento=fecha_vencimiento,
             fecha_creacion=datetime.utcnow()
         )
+        if estado == 'pagado':
+            pago.fecha_pago = datetime.utcnow()
         
         db.session.add(pago)
+        db.session.flush()
+
+        if estado == 'pagado':
+            descripcion_ingreso = f'Pago de {estudiante.nombre}'
+            existe_ingreso = Ingreso.query.filter_by(
+                descripcion=descripcion_ingreso,
+                monto=monto,
+                fuente='pago_estudiante'
+            ).order_by(Ingreso.fecha.desc()).first()
+            if not existe_ingreso or (datetime.utcnow() - existe_ingreso.fecha).total_seconds() > 300:
+                nuevo_ingreso = Ingreso(
+                    descripcion=descripcion_ingreso,
+                    monto=monto,
+                    fuente='pago_estudiante',
+                    fecha=datetime.utcnow()
+                )
+                db.session.add(nuevo_ingreso)
         
         if estudiante.padre_id:
             crear_notificacion(
@@ -530,13 +559,20 @@ def marcar_pago_pagado(pago_id):
         pago.fecha_pago = datetime.utcnow()
         pago.metodo_pago = data.get('metodo_pago', 'efectivo')
         
-        nuevo_ingreso = Ingreso(
-            descripcion=f'Pago de {pago.estudiante.nombre}',
+        descripcion_ingreso = f'Pago de {pago.estudiante.nombre}'
+        existe_ingreso = Ingreso.query.filter_by(
+            descripcion=descripcion_ingreso,
             monto=pago.monto,
-            fuente='pago_estudiante',
-            fecha=datetime.utcnow()
-        )
-        db.session.add(nuevo_ingreso)
+            fuente='pago_estudiante'
+        ).order_by(Ingreso.fecha.desc()).first()
+        if not existe_ingreso or (datetime.utcnow() - existe_ingreso.fecha).total_seconds() > 300:
+            nuevo_ingreso = Ingreso(
+                descripcion=descripcion_ingreso,
+                monto=pago.monto,
+                fuente='pago_estudiante',
+                fecha=datetime.utcnow()
+            )
+            db.session.add(nuevo_ingreso)
         
         db.session.commit()
         
@@ -1534,6 +1570,14 @@ def agregar_ruta():
         vehiculo_id = int(request.form['vehiculo_id']) if request.form['vehiculo_id'] else None
         conductor_id = int(request.form['conductor_id']) if request.form.get('conductor_id') else None
         
+        existente = Ruta.query.filter_by(
+            nombre=nombre,
+            hora_inicio=hora_inicio,
+            hora_fin=hora_fin
+        ).first()
+        if existente:
+            return jsonify({'success': False, 'error': 'Ruta ya existe con el mismo nombre y horario'}), 400
+
         nueva_ruta = Ruta(
             nombre=nombre,
             descripcion=descripcion,
