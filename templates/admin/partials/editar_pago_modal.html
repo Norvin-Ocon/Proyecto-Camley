@@ -1,0 +1,50 @@
+<div class="mb-3">
+    <label class="form-label">Estudiante</label>
+    <select class="form-select" name="estudiante_id" required disabled>
+        <option value="{{ pago.estudiante_id }}" selected>
+            {{ pago.estudiante.nombre if pago.estudiante else 'Estudiante no encontrado' }}
+        </option>
+    </select>
+    <small class="text-muted">No se puede cambiar el estudiante asignado</small>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Monto (C$)</label>
+    <div class="input-group">
+        <span class="input-group-text">C$</span>
+        <input type="number" class="form-control" name="monto" step="0.01" min="0" required 
+            value="{{ "%.2f"|format(pago.monto) }}">
+    </div>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Estado</label>
+    <select class="form-select" name="estado" required>
+        <option value="pendiente" {% if pago.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+        <option value="pagado" {% if pago.estado == 'pagado' %}selected{% endif %}>Pagado</option>
+    </select>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Método de Pago</label>
+    <select class="form-select" name="metodo_pago" required>
+        <option value="">Seleccionar...</option>
+        <option value="efectivo" {% if pago.metodo_pago == 'efectivo' %}selected{% endif %}>Efectivo</option>
+        <option value="tarjeta" {% if pago.metodo_pago == 'tarjeta' %}selected{% endif %}>Tarjeta</option>
+        <option value="transferencia" {% if pago.metodo_pago == 'transferencia' %}selected{% endif %}>Transferencia</option>
+    </select>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Referencia</label>
+    <input type="text" class="form-control" name="referencia" 
+        value="{{ pago.referencia or '' }}" 
+        placeholder="Número de comprobante">
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Fecha de Vencimiento</label>
+    <input type="date" class="form-control" name="fecha_vencimiento"
+        value="{{ pago.fecha_vencimiento.strftime('%Y-%m-%d') if pago.fecha_vencimiento else '' }}">
+</div>
+

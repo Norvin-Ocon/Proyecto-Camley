@@ -9,6 +9,10 @@
         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPaymentModal">
             <i class="bi bi-plus-circle"></i> Registrar Pago
         </button>
+        <!-- BOTÓN PARA ELIMINAR PAGOS VENCIDOS/ERRÓNEOS -->
+        <button type="button" class="btn btn-danger" onclick="eliminarPagosVencidos()">
+            <i class="bi bi-trash"></i> Limpiar Vencidos
+        </button>
     </div>
     
     <!-- Filtros -->
@@ -29,13 +33,31 @@
                     <select name="estudiante_id" class="form-select" onchange="this.form.submit()">
                         <option value="">Todos</option>
                         {% for estudiante in estudiantes %}
-                        <option value="{{ estudiante.id }}">{{ estudiante.nombre }}</option>
+                        <option value="{{ estudiante.id }}" 
+                            {% if request.args.get('estudiante_id')|int == estudiante.id %}selected{% endif %}>
+                            {{ estudiante.nombre }}
+                        </option>
                         {% endfor %}
                     </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Aplicar Filtros</button>
                 </div>
             </form>
         </div>
     </div>
+    
+    <!-- Mensajes Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     
     <!-- Tabla de pagos -->
     <div class="card">
@@ -48,37 +70,39 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>ID</th>
                             <th>Estudiante</th>
                             <th>Monto</th>
                             <th>Estado</th>
-                            <th>Vencimiento</th>
+                            <th>Fecha Vencimiento</th>
+                            <th>Fecha Pago</th>
+                            <th>Método</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for pago in pagos %}
                         <tr>
-                            <!-- PARTE ACTUALIZADA -->
+                            <td><small class="text-muted">#{{ pago.id }}</small></td>
                             <td>
                                 {% if pago.estudiante %}
                                 <strong>{{ pago.estudiante.nombre }}</strong>
                                 <br>
-                                <small class="text-muted">ID: {{ pago.id }}</small>
+                                <small class="text-muted">Grado: {{ pago.estudiante.grado }}</small>
                                 {% else %}
-                                <span class="text-danger">Estudiante no encontrado</span>
+                                <span class="text-danger">Estudiante no encontrado (ID: {{ pago.estudiante_id }})</span>
                                 {% endif %}
                             </td>
-
                             <td>
-                                <span class="fw-bold">${{ "%.2f"|format(pago.monto) }}</span>
+                                <span class="fw-bold">C$ {{ "%.2f"|format(pago.monto) }}</span>
                             </td>
                             <td>
                                 {% if pago.estado == 'pagado' %}
-                                <span class="badge bg-success">Pagado</span>
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Pagado</span>
                                 {% elif pago.fecha_vencimiento and pago.fecha_vencimiento < now %}
-                                <span class="badge bg-danger">Vencido</span>
+                                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Vencido</span>
                                 {% else %}
-                                <span class="badge bg-warning">Pendiente</span>
+                                <span class="badge bg-warning"><i class="bi bi-hourglass-split"></i> Pendiente</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -87,7 +111,7 @@
                                 {% if pago.fecha_vencimiento < now %}
                                 <br>
                                 <small class="text-danger">
-                                    Hace {{ (now - pago.fecha_vencimiento).days }} días
+                                    Vencido hace {{ (now - pago.fecha_vencimiento).days }} días
                                 </small>
                                 {% endif %}
                                 {% else %}
@@ -95,12 +119,44 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if pago.estado == 'pendiente' %}
-                                <button class="btn btn-sm btn-success" 
-                                        onclick="registrarPago({{ pago.id }})">
-                                    <i class="bi bi-check-circle"></i> Marcar Pagado
-                                </button>
+                                {% if pago.fecha_pago %}
+                                {{ pago.fecha_pago.strftime('%d/%m/%Y') }}
+                                {% else %}
+                                <span class="text-muted">-</span>
                                 {% endif %}
+                            </td>
+                            <td>
+                                {% if pago.metodo_pago %}
+                                {{ pago.metodo_pago|capitalize }}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    {% if pago.estado == 'pendiente' %}
+                                    <button class="btn btn-sm btn-success" 
+                                            onclick="marcarComoPagado({{ pago.id }})"
+                                            title="Marcar como pagado">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <!-- Botón EDITAR -->
+                                    <button class="btn btn-sm btn-primary" 
+                                            onclick="editarPago({{ pago.id }})"
+                                            title="Editar pago">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    
+                                    <!-- Botón ELIMINAR -->
+                                    <button class="btn btn-sm btn-danger" 
+                                            onclick="eliminarPago({{ pago.id }}, '{{ pago.estudiante.nombre if pago.estudiante else 'Sin nombre' }}')"
+                                            title="Eliminar pago">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -111,6 +167,7 @@
             <div class="text-center py-5">
                 <i class="bi bi-cash-coin display-1 text-muted"></i>
                 <h4 class="text-muted mt-3">No hay pagos registrados</h4>
+                <p class="text-muted">Usa el botón "Registrar Pago" para agregar uno nuevo</p>
             </div>
             {% endif %}
         </div>
@@ -132,16 +189,17 @@
                         <select class="form-select" name="estudiante_id" required>
                             <option value="">Seleccionar estudiante...</option>
                             {% for estudiante in estudiantes %}
-                            <option value="{{ estudiante.id }}">{{ estudiante.nombre }}</option>
+                            <option value="{{ estudiante.id }}">{{ estudiante.nombre }} (Grado: {{ estudiante.grado }})</option>
                             {% endfor %}
                         </select>
+                        <small class="text-muted">Si el estudiante no aparece, debe estar registrado primero en "Estudiantes"</small>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Monto *</label>
+                        <label class="form-label">Monto * (C$)</label>
                         <div class="input-group">
-                            <span class="input-group-text">$</span>
+                            <span class="input-group-text">C$</span>
                             <input type="number" class="form-control" name="monto" step="0.01" min="0" required 
-                                placeholder="50.00">
+                                placeholder="50.00" value="50.00">
                         </div>
                     </div>
                     <div class="mb-3">
@@ -156,7 +214,12 @@
                     <div class="mb-3">
                         <label class="form-label">Referencia (opcional)</label>
                         <input type="text" class="form-control" name="referencia" 
-                            placeholder="Número de comprobante">
+                            placeholder="Número de comprobante, voucher, etc.">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de Vencimiento (opcional)</label>
+                        <input type="date" class="form-control" name="fecha_vencimiento">
+                        <small class="text-muted">Dejar vacío si no tiene fecha de vencimiento</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -168,24 +231,189 @@
     </div>
 </div>
 
+<!-- Modal para editar pago (NUEVO) -->
+<div class="modal fade" id="editPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Pago</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editPaymentForm" method="POST" action="">
+                <div class="modal-body" id="editPaymentBody">
+                    <!-- Contenido cargado dinámicamente por JavaScript -->
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-2">Cargando datos del pago...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-function registrarPago(pagoId) {
-    if (confirm('¿Marcar este pago como pagado?')) {
-        fetch('/admin/pagos/' + pagoId + '/pagar', {
-            method: 'POST'
+// Funciones para pagos
+function marcarComoPagado(pagoId) {
+    if (confirm('¿Marcar este pago como pagado?\nEsta acción no se puede deshacer.')) {
+        fetch(`/admin/pagos/${pagoId}/pagar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
+            }
         })
         .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('❌ Error de conexión: ' + error);
+        });
+    }
+}
+
+function editarPago(pagoId) {
+    // Cargar datos del pago
+    fetch(`/admin/pagos/${pagoId}/editar`)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('editPaymentBody').innerHTML = html;
+            document.getElementById('editPaymentForm').action = `/admin/pagos/${pagoId}/editar`;
+            document.getElementById('editPaymentForm').dataset.pagoId = pagoId;
+            
+            const modal = new bootstrap.Modal(document.getElementById('editPaymentModal'));
+            modal.show();
+        })
+        .catch(error => {
+            alert('Error al cargar datos: ' + error);
+        });
+}
+
+// Guardar cambios del pago (AJAX)
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editPaymentForm');
+    if (!form) return;
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const action = form.action || `/admin/pagos/${form.dataset.pagoId}/editar`;
+        
+        fetch(action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
         .then(data => {
             if (data.success) {
                 location.reload();
             } else {
                 alert('Error: ' + data.error);
             }
+        })
+        .catch(() => alert('Error de conexión'));
+    });
+});
+
+function eliminarPago(pagoId, nombreEstudiante) {
+    if (confirm(`⚠️ ¿Eliminar permanentemente el pago de ${nombreEstudiante}?\n\nEsta acción NO se puede deshacer.`)) {
+        fetch(`/admin/pagos/${pagoId}/eliminar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('❌ Error de conexión: ' + error);
         });
     }
 }
+
+
+function eliminarPagosVencidos() {
+    if (confirm('⚠️ ¿Eliminar TODOS los pagos vencidos?\n\nEsta acción eliminará permanentemente todos los pagos con fecha vencida.')) {
+        fetch('/admin/pagos/limpiar-vencidos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`✅ ${data.message}\nSe eliminaron ${data.eliminados} pagos.`);
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('❌ Error de conexión: ' + error);
+        });
+    }
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar fecha de vencimiento por defecto (30 días desde hoy)
+    const fechaInput = document.querySelector('input[name="fecha_vencimiento"]');
+    if (fechaInput && !fechaInput.value) {
+        const hoy = new Date();
+        const en30Dias = new Date(hoy);
+        en30Dias.setDate(hoy.getDate() + 30);
+        fechaInput.value = en30Dias.toISOString().split('T')[0];
+    }
+    
+    // Manejar envío del formulario de edición
+    const editForm = document.getElementById('editPaymentForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('❌ Error de conexión: ' + error);
+            });
+        });
+    }
+});
 </script>
 {% endblock %}

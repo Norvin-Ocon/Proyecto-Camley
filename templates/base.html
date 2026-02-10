@@ -1,157 +1,482 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="{% if session.get('modo_oscuro') %}dark{% else %}light{% endif %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Camley - Transporte Escolar{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-    <style>
-        body {
-            background-color: #f8f9fa;
-            min-height: 100vh;
-        }
-        .navbar-brand {
-            font-weight: 600;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            border-top: 1px solid #dee2e6;
-            padding: 20px 0;
-            margin-top: 40px;
-        }
-    </style>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0d6efd">
+    <meta name="description" content="Sistema de Transporte Escolar Camley - Gestión completa de rutas, pagos y estudiantes">
+    <meta name="keywords" content="transporte escolar, camley, estudiantes, rutas, pagos">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Camley">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png">
+    
+    <!-- Windows PWA -->
+    <meta name="msapplication-TileColor" content="#0d6efd">
+    <meta name="msapplication-TileImage" content="/static/icons/icon-144x144.png">
+    
+    <!-- CSRF Protection -->
+    <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
+    
+    <title>Camley Transporte - {% block title %}{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS (para mapas GPS) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-192x192.png') }}" type="image/png">
+    
     {% block extra_css %}{% endblock %}
 </head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
+<body class="{% if session.get('modo_oscuro') %}dark-mode{% endif %}">
+    <!-- Navbar Principal -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid">
+            <!-- Brand/Logo -->
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="bi bi-bus-front"></i> Camley Transporte
+                <i class="fas fa-bus me-2"></i>
+                <strong>Camley Transporte</strong>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
+            
+            <!-- Navbar Items -->
+            <div class="collapse navbar-collapse" id="navbarMain">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="bi bi-house"></i> Inicio
-                        </a>
-                    </li>
-                    
                     {% if current_user.is_authenticated %}
+                        <!-- Admin Menu -->
                         {% if current_user.rol == 'admin' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
-                                <i class="bi bi-speedometer2"></i> Panel Admin
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-tachometer-alt me-1"></i> Admin
                             </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">
+                                    <i class="fas fa-home me-2"></i> Panel de Inicio
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_estudiantes') }}">
+                                    <i class="fas fa-users me-2"></i> Estudiantes
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_padres') }}">
+                                    <i class="fas fa-user-friends me-2"></i> Padres
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_conductores') }}">
+                                    <i class="fas fa-user-tie me-2"></i> Conductores
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_pagos') }}">
+                                    <i class="fas fa-money-bill-wave me-2"></i> Pagos
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_finanzas') }}">
+                                    <i class="fas fa-chart-line me-2"></i> Finanzas
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_rutas') }}">
+                                    <i class="fas fa-route me-2"></i> Rutas
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_vehiculos') }}">
+                                    <i class="fas fa-truck me-2"></i> Vehículos
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin_asistencias') }}">
+                                    <i class="fas fa-clipboard-check me-2"></i> Asistencias
+                                </a></li>
+                            </ul>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_estudiantes') }}">
-                                <i class="bi bi-people"></i> Estudiantes
-                            </a>
-                        </li>
-                        {% elif current_user.rol == 'padre' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('padre_dashboard') }}">
-                                <i class="bi bi-speedometer2"></i> Mi Panel
-                            </a>
-                        </li>
-                        {% elif current_user.rol == 'conductor' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('conductor_dashboard') }}">
-                                <i class="bi bi-speedometer2"></i> Mi Panel
+                            <a class="nav-link" href="{{ url_for('admin_soporte') }}">
+                                <i class="fas fa-headset me-1"></i> Soporte
                             </a>
                         </li>
                         {% endif %}
+                        
+                        <!-- Padre Menu -->
+                        {% if current_user.rol == 'padre' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('padre_dashboard') }}">
+                                <i class="fas fa-home me-1"></i> Mi Panel
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('padre_dashboard') }}#pagos">
+                                <i class="fas fa-money-bill me-1"></i> Pagos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('padre_dashboard') }}#hijos">
+                                <i class="fas fa-child me-1"></i> Mis Hijos
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        <!-- Conductor Menu -->
+                        {% if current_user.rol == 'conductor' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('conductor_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-1"></i> Mi Ruta
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('conductor_soporte') }}">
+                                <i class="fas fa-inbox me-1"></i> Buzón
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('conductor_dashboard') }}#estudiantes">
+                                <i class="fas fa-users me-1"></i> Estudiantes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('conductor_dashboard') }}#gps">
+                                <i class="fas fa-map-marker-alt me-1"></i> GPS
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                        <!-- Public Menu -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}">
+                                <i class="fas fa-home me-1"></i> Inicio
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt me-1"></i> Iniciar Sesión
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('registro') }}">
+                                <i class="fas fa-user-plus me-1"></i> Registrarse
+                            </a>
+                        </li>
                     {% endif %}
                 </ul>
                 
-                <ul class="navbar-nav">
+                <!-- Right Side Navbar -->
+                <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
-                            data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> {{ current_user.nombre }}
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <span class="dropdown-item-text">
-                                    <small>{{ current_user.email }}</small>
+                        <!-- Notificaciones -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-bell"></i>
+                                {% set unread_notifications = [] %}
+                                {% for notif in current_user.notificaciones if not notif.leida %}
+                                    {% set _ = unread_notifications.append(notif) %}
+                                {% endfor %}
+                                {% if unread_notifications|length > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationBadge">
+                                    {{ unread_notifications|length }}
+                                    <span class="visually-hidden">notificaciones sin leer</span>
                                 </span>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('logout') }}">
-                                    <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                                {% endif %}
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end p-0" style="min-width: 300px;">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0"><i class="fas fa-bell me-2"></i> Notificaciones</h6>
+                                    </div>
+                                    <div class="card-body p-0" style="max-height: 300px; overflow-y: auto;">
+                                        {% if current_user.notificaciones %}
+                                            {% for notif in current_user.notificaciones|sort(attribute='fecha', reverse=true)|batch(5)|first %}
+                                            <a href="{{ notif.link or '#' }}" class="notification-item {% if not notif.leida %}unread{% endif %} dropdown-item"
+                                                data-notif-id="{{ notif.id }}">
+                                                <div class="d-flex">
+                                                    <div class="notification-icon me-2">
+                                                        {% if notif.tipo == 'pago' %}
+                                                        <i class="fas fa-money-bill-wave"></i>
+                                                        {% elif notif.tipo == 'asistencia' %}
+                                                        <i class="fas fa-clipboard-check"></i>
+                                                        {% elif notif.tipo == 'retraso' %}
+                                                        <i class="fas fa-clock"></i>
+                                                        {% elif notif.tipo == 'estudiante' %}
+                                                        <i class="fas fa-user-graduate"></i>
+                                                        {% else %}
+                                                        <i class="fas fa-info-circle"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <div class="fw-bold">{{ notif.tipo|title }}</div>
+                                                        <small class="text-muted">{{ notif.mensaje }}</small>
+                                                        <div class="text-end">
+                                                            <small class="text-muted">{{ notif.fecha.strftime('%d/%m/%Y %H:%M') }}</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="text-center py-3">
+                                                <i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
+                                                <p class="text-muted mb-0">No hay notificaciones</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer text-center">
+                                        <a href="{{ url_for('notificaciones') }}" class="btn btn-sm btn-outline-primary">Ver todas</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        
+                        <!-- User Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <div class="d-inline-flex align-items-center">
+                                    <div class="user-avatar me-2">
+                                        {{ current_user.nombre[0]|upper }}
+                                    </div>
+                                    <span class="d-none d-md-inline">{{ current_user.nombre }}</span>
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <div class="dropdown-header">
+                                        <strong>{{ current_user.nombre }}</strong>
+                                        <div class="text-muted small">{{ current_user.email }}</div>
+                                        <div class="text-muted small">
+                                            Rol: <span class="badge bg-{% if current_user.rol == 'admin' %}danger{% elif current_user.rol == 'padre' %}success{% else %}info{% endif %}">
+                                                {{ current_user.rol|title }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-user me-2"></i> Mi Perfil
+                                    </a>
+                                </li>
+                                <!-- Modo Oscuro Toggle -->
+                                <li>
+                                    <button class="dropdown-item" id="toggleModoOscuro">
+                                        <i class="fas {% if session.get('modo_oscuro') %}fa-sun{% else %}fa-moon{% endif %} me-2"></i>
+                                        {% if session.get('modo_oscuro') %}Modo Claro{% else %}Modo Oscuro{% endif %}
+                                    </button>
+                                </li>
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
                     {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">
-                            <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('registro') }}">
-                            <i class="bi bi-person-plus"></i> Registrarse
-                        </a>
-                    </li>
+                        <!-- Modo Oscuro para usuarios no autenticados -->
+                        <li class="nav-item">
+                            <button class="btn btn-outline-light" id="toggleModoOscuro">
+                                <i class="fas fa-moon"></i>
+                            </button>
+                        </li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show">
                         {{ message }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4">
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
     <!-- Footer -->
-    <footer class="footer">
-        <div class="container text-center">
-            <p class="mb-0">
-                <i class="bi bi-bus-front"></i> Camley Transporte Escolar &copy; 2024
-                <br>
-                <small class="text-muted">Sistema de gestión de transporte escolar seguro</small>
-            </p>
+    <footer class="footer mt-auto py-3 bg-light border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <span class="text-muted">
+                        <i class="fas fa-bus text-primary me-1"></i>
+                        <strong>Camley Transporte Escolar</strong> &copy; {{ now.year if now else '2024' }}
+                    </span>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="text-muted">
+                        <i class="fas fa-code me-1"></i> Desarrollado con Flask
+                        <span class="mx-2">•</span>
+                        <i class="fas fa-database me-1"></i> SQLite
+                        <span class="mx-2">•</span>
+                        <i class="fas fa-mobile-alt me-1"></i> PWA Ready
+                    </span>
+                </div>
+            </div>
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Auto-close alerts -->
+    <!-- jQuery (opcional, para algunas funcionalidades) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Leaflet JS (para mapas GPS) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+    
+    <!-- Inline JavaScript for PWA and Dark Mode -->
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                if (alert.parentElement) {
+        // Configuración global
+        window.currentUserId = {{ current_user.id if current_user.is_authenticated else 0 }};
+        window.lastNotificationCount = 0;
+        
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('✅ PWA Service Worker registrado:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('❌ PWA Service Worker error:', error);
+                    });
+            });
+        }
+        
+        // Detectar si la app se ejecuta como PWA
+        function isRunningAsPWA() {
+            return window.matchMedia('(display-mode: standalone)').matches || 
+                window.navigator.standalone === true;
+        }
+        
+        // Mostrar botón de instalación si es posible
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallButton();
+        });
+        
+        function showInstallButton() {
+            const installBtn = document.getElementById('installPWA');
+            if (installBtn) {
+                installBtn.classList.remove('d-none');
+                installBtn.addEventListener('click', installPWA);
+            }
+        }
+        
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('✅ PWA instalado');
+                        showNotification('✅ Aplicación instalada correctamente', 'success');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+        
+        // Funciones de utilidad
+        function showNotification(message, type = 'info') {
+            // Crear toast de Bootstrap
+            const toastHtml = `
+                <div class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            // Agregar al contenedor
+            const container = document.querySelector('.toast-container');
+            if (!container) {
+                const newContainer = document.createElement('div');
+                newContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                document.body.appendChild(newContainer);
+                newContainer.innerHTML = toastHtml;
+            } else {
+                container.innerHTML = toastHtml;
+            }
+            
+            // Mostrar toast
+            const toastEl = document.querySelector('.toast');
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+        }
+        
+        // Auto-ocultar alertas después de 5 segundos
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
                     const bsAlert = new bootstrap.Alert(alert);
                     bsAlert.close();
-                }
+                });
+            }, 5000);
+            
+            // Inicializar tooltips
+            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+            
+            // Inicializar popovers
+            const popovers = document.querySelectorAll('[data-bs-toggle="popover"]');
+            popovers.forEach(popover => new bootstrap.Popover(popover));
+            
+            // Marcar notificación como leída al hacer clic
+            const notifLinks = document.querySelectorAll('[data-notif-id]');
+            notifLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    const id = link.getAttribute('data-notif-id');
+                    if (!id) return;
+                    fetch(`/api/notificaciones/marcar_leida/${id}`, { method: 'POST' })
+                        .then(() => {
+                            link.classList.remove('unread');
+                            const badge = document.getElementById('notificationBadge');
+                            if (badge) {
+                                const current = parseInt(badge.textContent || '0', 10);
+                                const next = Math.max(0, current - 1);
+                                if (next === 0) {
+                                    badge.classList.add('d-none');
+                                } else {
+                                    badge.textContent = next;
+                                }
+                            }
+                        })
+                        .catch(() => {});
+                });
             });
-        }, 5000);
-    });
+        });
     </script>
     
     {% block scripts %}{% endblock %}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

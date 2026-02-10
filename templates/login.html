@@ -119,8 +119,13 @@
                             
                             <div class="mb-4">
                                 <label class="form-label">Contraseña</label>
-                                <input type="password" class="form-control" name="password" required 
-                                        placeholder="••••••••">
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="loginPassword" name="password" required 
+                                            placeholder="••••••••">
+                                    <button class="btn btn-outline-secondary password-toggle" type="button" data-target="loginPassword">
+                                        <i class="bi bi-eye-slash"></i>
+                                    </button>
+                                </div>
                             </div>
                             
                             <button type="submit" class="btn-login mb-3">
@@ -148,7 +153,7 @@
                                 </div>
                                 <div class="col-6">
                                     <strong>Padre:</strong><br>
-                                    padre@ejemplo.com<br>
+                                    padre@camley.com<br>
                                     padre123
                                 </div>
                                 <div class="col-6 mt-2">
@@ -174,6 +179,36 @@
                 bsAlert.close();
             });
         }, 5000);
+
+        // Mostrar/ocultar contraseña al mantener presionado
+        const toggleBtn = document.querySelector('.password-toggle');
+        if (toggleBtn) {
+            const targetId = toggleBtn.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            const icon = toggleBtn.querySelector('i');
+            if (input) {
+                const show = () => {
+                    input.type = 'text';
+                    if (icon) {
+                        icon.classList.remove('bi-eye-slash');
+                        icon.classList.add('bi-eye');
+                    }
+                };
+                const hide = () => {
+                    input.type = 'password';
+                    if (icon) {
+                        icon.classList.add('bi-eye-slash');
+                        icon.classList.remove('bi-eye');
+                    }
+                };
+                toggleBtn.addEventListener('mousedown', show);
+                toggleBtn.addEventListener('touchstart', show);
+                toggleBtn.addEventListener('mouseup', hide);
+                toggleBtn.addEventListener('mouseleave', hide);
+                toggleBtn.addEventListener('touchend', hide);
+                toggleBtn.addEventListener('touchcancel', hide);
+            }
+        }
     </script>
 </body>
 </html>

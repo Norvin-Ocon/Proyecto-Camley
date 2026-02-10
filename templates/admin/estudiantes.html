@@ -71,9 +71,9 @@
                                     </div>
                                     <div>
                                         <strong>{{ estudiante.nombre }}</strong>
-                                        {% if estudiante.padre %}
+                                        {% if estudiante.padre_rel %}
                                         <br>
-                                        <small class="text-muted">Padre: {{ estudiante.padre.nombre }}</small>
+                                        <small class="text-muted">Padre: {{ estudiante.padre_rel.nombre }}</small>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -86,14 +86,13 @@
                             <td>{{ estudiante.fecha_inscripcion.strftime('%d/%m/%Y') }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-info" data-bs-toggle="tooltip" title="Ver detalles">
-                                        <i class="bi bi-eye"></i>
+                                    <button type="button" class="btn btn-outline-warning" data-bs-toggle="tooltip" title="Editar"
+                                            onclick="editarEstudiante({{ estudiante.id }})">
+                                        <i class="bi bi-pencil"></i> Editar
                                     </button>
-                                    <button type="button" class="btn btn-outline-warning" data-bs-toggle="tooltip" title="Editar">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Eliminar">
-                                        <i class="bi bi-trash"></i>
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Eliminar"
+                                            onclick="eliminarEstudiante({{ estudiante.id }}, '{{ estudiante.nombre }}')">
+                                        <i class="bi bi-trash"></i> Eliminar
                                     </button>
                                 </div>
                             </td>
@@ -156,6 +155,17 @@
                             </select>
                         </div>
                     </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Género *</label>
+                            <select class="form-select" name="genero" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="masculino">Masculino</option>
+                                <option value="femenino">Femenino</option>
+                            </select>
+                        </div>
+                    </div>
                     
                     <div class="row">
                         <div class="col-md-8 mb-3">
@@ -178,8 +188,8 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Observaciones</label>
-                        <textarea class="form-control" name="observaciones" rows="2"
+                        <label class="form-label">Condición / Observaciones</label>
+                        <textarea class="form-control" name="condicion" rows="2"
                                 placeholder="Alergias, necesidades especiales, etc."></textarea>
                     </div>
                 </div>

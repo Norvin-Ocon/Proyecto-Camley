@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-route"></i> Gestión de Rutas</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarRuta">
+            <i class="fas fa-plus"></i> Nueva Ruta
+        </button>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchRutas" class="form-control" 
+                    placeholder="Buscar ruta..." data-table="tablaRutas">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select id="filterEstado" class="form-select" onchange="filterRutas()">
+                <option value="">Todas las rutas</option>
+                <option value="activa">Activas</option>
+                <option value="inactiva">Inactivas</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select id="filterConductor" class="form-select" onchange="filterRutas()">
+                <option value="">Todos los conductores</option>
+                <option value="asignado">Con conductor</option>
+                <option value="no-asignado">Sin conductor</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Rutas -->
+    {% if rutas %}
+    <div class="row">
+        {% for ruta in rutas %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center
+                    {% if ruta.activa %}bg-success text-white{% else %}bg-secondary text-white{% endif %}">
+                    <div>
+                        <h5 class="mb-0">{{ ruta.nombre }}</h5>
+                        <small>
+                            {{ ruta.hora_inicio }} - {{ ruta.hora_fin }}
+                        </small>
+                    </div>
+                    <span class="badge {% if ruta.activa %}bg-light text-dark{% else %}bg-dark{% endif %}">
+                        {% if ruta.activa %}Activa{% else %}Inactiva{% endif %}
+                    </span>
+                </div>
+                
+                <div class="card-body">
+                    {% if ruta.descripcion %}
+                    <p class="card-text">{{ ruta.descripcion }}</p>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted"><i class="fas fa-bus"></i> Vehículo:</h6>
+                        {% if ruta.vehiculo %}
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-car me-2"></i>
+                            <div>
+                                <strong>{{ ruta.vehiculo.marca }} {{ ruta.vehiculo.modelo }}</strong>
+                                <div class="small text-muted">
+                                    Placa: {{ ruta.vehiculo.placa }} • Capacidad: {{ ruta.vehiculo.capacidad }}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="text-muted">No asignado</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted"><i class="fas fa-user-tie"></i> Conductor:</h6>
+                        {% if ruta.conductor_rel %}
+                        <div class="d-flex align-items-center">
+                            <div class="user-avatar me-2">
+                                {{ ruta.conductor_rel.nombre[0] }}
+                            </div>
+                            <div>
+                                <strong>{{ ruta.conductor_rel.nombre }}</strong>
+                                <div class="small text-muted">
+                                    {{ ruta.conductor_rel.telefono or 'Sin teléfono' }}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="text-muted">No asignado</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <h6 class="text-muted"><i class="fas fa-users"></i> Estudiantes:</h6>
+                        {% set estudiantes_ruta = ruta.estudiantes|length %}
+                        <div class="progress" style="height: 20px;">
+                            {% if ruta.vehiculo and ruta.vehiculo.capacidad %}
+                                {% set porcentaje = (estudiantes_ruta / ruta.vehiculo.capacidad) * 100 %}
+                                <div class="progress-bar 
+                                    {% if porcentaje < 70 %}bg-success
+                                    {% elif porcentaje < 90 %}bg-warning
+                                    {% else %}bg-danger{% endif %}" 
+                                    style="width: {{ porcentaje }}%">
+                                    {{ estudiantes_ruta }}/{{ ruta.vehiculo.capacidad }}
+                                </div>
+                            {% else %}
+                                <div class="progress-bar bg-info" style="width: 100%">
+                                    {{ estudiantes_ruta }} estudiantes
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="editarRuta({{ ruta.id }})">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn btn-sm btn-outline-info"
+                                onclick="verEstudiantesRuta({{ ruta.id }})">
+                            <i class="fas fa-list"></i> Ver Estudiantes
+                        </button>
+                        <button class="btn btn-sm {% if ruta.activa %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                                onclick="toggleRutaActiva({{ ruta.id }}, {{ ruta.activa|lower }}, '{{ ruta.nombre }}')">
+                            <i class="fas {% if ruta.activa %}fa-toggle-off{% else %}fa-toggle-on{% endif %}"></i>
+                            {% if ruta.activa %}Desactivar{% else %}Activar{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-route fa-4x text-muted mb-3"></i>
+        <h4 class="text-muted">No hay rutas registradas</h4>
+        <p class="text-muted">Crea tu primera ruta para empezar a organizar el transporte.</p>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarRuta">
+            <i class="fas fa-plus"></i> Crear Primera Ruta
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Agregar Ruta -->
+<div class="modal fade" id="modalAgregarRuta" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus"></i> Nueva Ruta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formAgregarRuta" onsubmit="agregarRuta(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la Ruta *</label>
+                        <input type="text" class="form-control" name="nombre" required 
+                            placeholder="Ej: Ruta Norte - Mañana">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="3"
+                                  placeholder="Descripción de la ruta, puntos de recogida, etc."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Hora de Inicio *</label>
+                            <input type="time" class="form-control" name="hora_inicio" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Hora de Fin *</label>
+                            <input type="time" class="form-control" name="hora_fin" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Vehículo</label>
+                        <select class="form-select" name="vehiculo_id">
+                            <option value="">Seleccionar vehículo...</option>
+                            {% for vehiculo in vehiculos %}
+                            <option value="{{ vehiculo.id }}">
+                                {{ vehiculo.marca }} {{ vehiculo.modelo }} - {{ vehiculo.placa }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Conductor</label>
+                        <select class="form-select" name="conductor_id">
+                            <option value="">Seleccionar conductor...</option>
+                            {% for conductor in conductores %}
+                            <option value="{{ conductor.id }}">
+                                {{ conductor.nombre }} ({{ conductor.telefono or 'Sin teléfono' }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Ruta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editarRuta(rutaId) {
+    fetch(`/admin/rutas/${rutaId}/detalle`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+            document.getElementById('editRutaId').value = data.ruta.id;
+            document.getElementById('editRutaNombre').value = data.ruta.nombre;
+            document.getElementById('editRutaDescripcion').value = data.ruta.descripcion || '';
+            document.getElementById('editRutaInicio').value = data.ruta.hora_inicio || '';
+            document.getElementById('editRutaFin').value = data.ruta.hora_fin || '';
+            document.getElementById('editRutaConductor').value = data.ruta.conductor_id || '';
+            document.getElementById('editRutaVehiculo').value = data.ruta.vehiculo_id || '';
+            const modal = new bootstrap.Modal(document.getElementById('editRutaModal'));
+            modal.show();
+        });
+}
+
+function verEstudiantesRuta(rutaId) {
+    fetch(`/admin/rutas/${rutaId}/estudiantes`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+            const list = document.getElementById('studentsRutaList');
+            list.innerHTML = '';
+            if (data.estudiantes.length === 0) {
+                list.innerHTML = '<li class="list-group-item text-muted">Sin estudiantes asignados</li>';
+            } else {
+                data.estudiantes.forEach(e => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.innerHTML = `<strong>${e.nombre}</strong> - ${e.grado} <small class="text-muted">${e.escuela}</small>`;
+                    list.appendChild(li);
+                });
+            }
+            const modal = new bootstrap.Modal(document.getElementById('studentsRutaModal'));
+            modal.show();
+        });
+}
+
+function toggleRutaActiva(rutaId, activa, nombre) {
+    const texto = activa ? 'desactivar' : 'activar';
+    if (!confirm(`¿Deseas ${texto} la ruta "${nombre}"?`)) return;
+    fetch(`/admin/rutas/${rutaId}/toggle`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) location.reload();
+        });
+}
+
+// Guardar cambios de ruta
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editRutaForm');
+    if (!form) return;
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const rutaId = document.getElementById('editRutaId').value;
+        const formData = new FormData(e.currentTarget);
+        fetch(`/admin/rutas/${rutaId}/editar`, { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) location.reload();
+                else alert('Error: ' + data.error);
+            });
+    });
+});
+function agregarRuta(event) {
+    event.preventDefault();
+    const form = document.getElementById('formAgregarRuta');
+    const button = form.querySelector('button[type="submit"]');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...';
+    button.disabled = true;
+    
+    const formData = new FormData(form);
+    
+    fetch('/admin/rutas/agregar', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Ruta agregada exitosamente');
+            location.reload();
+        } else {
+            alert('❌ Error: ' + data.error);
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        alert('❌ Error de conexión: ' + error);
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function filterRutas() {
+    const searchText = document.getElementById('searchRutas').value.toLowerCase();
+    const estadoFilter = document.getElementById('filterEstado').value;
+    const conductorFilter = document.getElementById('filterConductor').value;
+    
+    const cards = document.querySelectorAll('.col-md-6.col-lg-4.mb-4');
+    
+    cards.forEach(card => {
+        const nombre = card.querySelector('.card-header h5').textContent.toLowerCase();
+        const activa = card.querySelector('.card-header').classList.contains('bg-success');
+        const tieneConductor = card.querySelector('.card-body').textContent.includes('No asignado') ? false : true;
+        
+        let show = true;
+        
+        // Filtrar por texto
+        if (searchText && !nombre.includes(searchText)) {
+            show = false;
+        }
+        
+        // Filtrar por estado
+        if (estadoFilter === 'activa' && !activa) {
+            show = false;
+        } else if (estadoFilter === 'inactiva' && activa) {
+            show = false;
+        }
+        
+        // Filtrar por conductor
+        if (conductorFilter === 'asignado' && !tieneConductor) {
+            show = false;
+        } else if (conductorFilter === 'no-asignado' && tieneConductor) {
+            show = false;
+        }
+        
+        card.style.display = show ? '' : 'none';
+    });
+}
+
+// Configurar búsqueda en tiempo real
+document.getElementById('searchRutas').addEventListener('input', filterRutas);
+</script>
+
+<!-- Modal editar ruta -->
+<div class="modal fade" id="editRutaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Ruta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editRutaForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editRutaId" name="ruta_id">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="editRutaNombre" name="nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" id="editRutaDescripcion" name="descripcion" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Hora Inicio</label>
+                            <input type="time" class="form-control" id="editRutaInicio" name="hora_inicio">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Hora Fin</label>
+                            <input type="time" class="form-control" id="editRutaFin" name="hora_fin">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Conductor</label>
+                            <select class="form-select" id="editRutaConductor" name="conductor_id">
+                                <option value="">Sin asignar</option>
+                                {% for conductor in conductores %}
+                                <option value="{{ conductor.id }}">{{ conductor.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Vehículo</label>
+                            <select class="form-select" id="editRutaVehiculo" name="vehiculo_id">
+                                <option value="">Sin asignar</option>
+                                {% for vehiculo in vehiculos %}
+                                <option value="{{ vehiculo.id }}">{{ vehiculo.marca }} {{ vehiculo.modelo }} - {{ vehiculo.placa }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal estudiantes por ruta -->
+<div class="modal fade" id="studentsRutaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-users"></i> Estudiantes de la Ruta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group" id="studentsRutaList"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

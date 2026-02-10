@@ -24,40 +24,51 @@
                             <label class="form-label">Nombre completo *</label>
                             <input type="text" class="form-control" name="nombre" required>
                         </div>
-                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Género *</label>
+                            <select class="form-select" name="genero" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="masculino">Masculino</option>
+                                <option value="femenino">Femenino</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Email *</label>
                             <input type="email" class="form-control" name="email" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Teléfono *</label>
+                            <input type="tel" class="form-control" name="telefono" required>
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Contraseña *</label>
-                            <input type="password" class="form-control" name="password" required minlength="6">
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="registroPassword" name="password" required minlength="6">
+                                <button class="btn btn-outline-secondary password-toggle" type="button" data-target="registroPassword">
+                                    <i class="bi bi-eye-slash"></i>
+                                </button>
+                            </div>
                             <small class="text-muted">Mínimo 6 caracteres</small>
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Teléfono</label>
-                            <input type="tel" class="form-control" name="telefono">
                         </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Dirección</label>
-                        <input type="text" class="form-control" name="direccion">
+                        <label class="form-label">Dirección *</label>
+                        <input type="text" class="form-control" name="direccion" required>
                     </div>
                     
                     <div class="mb-4">
-                        <label class="form-label">Registrarme como *</label>
-                        <select class="form-select" name="rol" required>
-                            <option value="">Seleccionar rol...</option>
-                            <option value="padre">Padre/Tutor</option>
-                            <option value="conductor">Conductor</option>
-                        </select>
+                        <label class="form-label">Tipo de cuenta</label>
+                        <input type="text" class="form-control" value="Padre/Tutor" disabled>
+                        <input type="hidden" name="rol" value="padre">
                         <small class="text-muted">
-                            Los conductores requieren aprobación del administrador
+                            Las cuentas de padre requieren aprobación del administrador.
                         </small>
                     </div>
                     

@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-clipboard-check"></i> Control de Asistencias</h2>
+        
+        <div class="d-flex">
+            <!-- Selector de fecha -->
+            <form method="GET" action="/admin/asistencias" class="me-3">
+                <div class="input-group">
+                    <input type="date" name="fecha" value="{{ fecha }}" class="form-control" 
+                        onchange="this.form.submit()">
+                    <button class="btn btn-outline-primary" type="submit">
+                        <i class="fas fa-calendar-alt"></i>
+                    </button>
+                </div>
+            </form>
+            
+            <button class="btn btn-success" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir Reporte
+            </button>
+        </div>
+    </div>
+    
+    <!-- Estadísticas rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Presentes</h5>
+                    <h2>{{ asistencias|selectattr('estado', 'equalto', 'presente')|list|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Ausentes</h5>
+                    <h2>{{ asistencias|selectattr('estado', 'equalto', 'ausente')|list|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Tardanzas</h5>
+                    <h2>{{ asistencias|selectattr('estado', 'equalto', 'tardanza')|list|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total</h5>
+                    <h2>{{ asistencias|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabla de asistencias -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Asistencias del {{ fecha.strftime('%d/%m/%Y') }}</h5>
+        </div>
+        
+        <div class="card-body">
+            {% if asistencias %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Estudiante</th>
+                            <th>Grado</th>
+                            <th>Estado</th>
+                            <th>Hora</th>
+                            <th>Conductor</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asistencia in asistencias %}
+                        <tr>
+                            <td>
+                                <strong>{{ asistencia.estudiante.nombre }}</strong>
+                                {% if asistencia.estudiante.ruta %}
+                                <br>
+                                <small class="text-muted">Ruta: {{ asistencia.estudiante.ruta.nombre }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ asistencia.estudiante.grado }}</td>
+                            <td>
+                                {% if asistencia.estado == 'presente' %}
+                                <span class="badge bg-success">Presente</span>
+                                {% elif asistencia.estado == 'ausente' %}
+                                <span class="badge bg-danger">Ausente</span>
+                                {% elif asistencia.estado == 'tardanza' %}
+                                <span class="badge bg-warning">Tardanza</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ asistencia.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asistencia.hora %}
+                                {{ asistencia.hora.strftime('%H:%M') }}
+                                {% else %}
+                                <span class="text-muted">No registrada</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asistencia.conductor %}
+                                {{ asistencia.conductor.nombre }}
+                                {% else %}
+                                <span class="text-muted">Sistema</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asistencia.observaciones %}
+                                <small>{{ asistencia.observaciones }}</small>
+                                {% else %}
+                                <span class="text-muted">Sin observaciones</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No hay asistencias registradas</h4>
+                <p class="text-muted">No se han registrado asistencias para esta fecha.</p>
+                <a href="/conductor/dashboard" class="btn btn-primary">
+                    <i class="fas fa-bus"></i> Ir a Panel Conductor
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="card-footer">
+            <div class="row">
+                <div class="col-md-6">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> 
+                        Total de estudiantes en sistema: {{ estudiantes|length }}
+                    </small>
+                </div>
+                <div class="col-md-6 text-end">
+                    <small class="text-muted">
+                        Última actualización: {{ now.strftime('%d/%m/%Y %H:%M') }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Resumen por ruta -->
+    {% if asistencias %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Resumen por Ruta</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% set rutas = {} %}
+                {% for asistencia in asistencias %}
+                    {% if asistencia.estudiante.ruta %}
+                        {% set ruta_nombre = asistencia.estudiante.ruta.nombre %}
+                        {% if ruta_nombre not in rutas %}
+                            {% set _ = rutas.update({ruta_nombre: {'presentes': 0, 'ausentes': 0, 'tardanzas': 0}}) %}
+                        {% endif %}
+                        
+                        {% if asistencia.estado == 'presente' %}
+                            {% set _ = rutas[ruta_nombre].update({'presentes': rutas[ruta_nombre]['presentes'] + 1}) %}
+                        {% elif asistencia.estado == 'ausente' %}
+                            {% set _ = rutas[ruta_nombre].update({'ausentes': rutas[ruta_nombre]['ausentes'] + 1}) %}
+                        {% elif asistencia.estado == 'tardanza' %}
+                            {% set _ = rutas[ruta_nombre].update({'tardanzas': rutas[ruta_nombre]['tardanzas'] + 1}) %}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% for ruta_nombre, datos in rutas.items() %}
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ ruta_nombre }}</h6>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-success">
+                                    <i class="fas fa-check-circle"></i> {{ datos.presentes }}
+                                </span>
+                                <span class="text-danger">
+                                    <i class="fas fa-times-circle"></i> {{ datos.ausentes }}
+                                </span>
+                                <span class="text-warning">
+                                    <i class="fas fa-clock"></i> {{ datos.tardanzas }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Reportes por conductor -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Reportes por Conductor</h5>
+        </div>
+        <div class="card-body">
+            {% if conductores_reportes %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Conductor</th>
+                            <th>Presentes</th>
+                            <th>Ausentes</th>
+                            <th>Tardanzas</th>
+                            <th>Reporte</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in conductores_reportes %}
+                        <tr>
+                            <td>{{ c.nombre }}</td>
+                            <td><span class="badge bg-success">{{ c.presentes }}</span></td>
+                            <td><span class="badge bg-danger">{{ c.ausentes }}</span></td>
+                            <td><span class="badge bg-warning">{{ c.tardanzas }}</span></td>
+                            <td>
+                                <a class="btn btn-sm btn-outline-primary"
+                                   href="{{ url_for('admin_reporte_asistencia', conductor_id=c.id, fecha=fecha.strftime('%Y-%m-%d')) }}">
+                                    <i class="fas fa-file-download"></i> Descargar
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-3 text-muted">Sin asistencias para generar reportes</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Asistencia manual por conductor -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Asistencia Manual de Conductores</h5>
+        </div>
+        <div class="card-body">
+            {% if asistencias_manuales %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Conductor</th>
+                            <th>Presentes</th>
+                            <th>Ausentes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in asistencias_manuales %}
+                        <tr>
+                            <td>{{ a.conductor.nombre }}</td>
+                            <td><span class="badge bg-success">{{ a.presentes }}</span></td>
+                            <td><span class="badge bg-danger">{{ a.ausentes }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-3 text-muted">Sin registros manuales</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

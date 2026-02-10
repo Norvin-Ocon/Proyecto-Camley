@@ -1,234 +1,721 @@
 {% extends "base.html" %}
 
-{% block title %} - Mi Panel{% endblock %}
+{% block title %}Panel de Padre{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <h2 class="mb-4">
-        <i class="bi bi-speedometer2"></i> Panel de Padres/Tutores
-    </h2>
-    
-    <!-- Bienvenida -->
-    <div class="alert alert-info">
-        <div class="d-flex align-items-center">
-            <div class="me-3">
-                <i class="bi bi-person-circle fs-1"></i>
-            </div>
-            <div>
-                <h5 class="alert-heading mb-1">Bienvenido, {{ current_user.nombre }}!</h5>
-                <p class="mb-0">Desde aquí puedes monitorear el transporte de tus hijos y gestionar pagos.</p>
+<div class="container-fluid fade-in">
+    <!-- Header del Panel -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-user-circle text-primary me-2"></i>Panel de Padre
+            </h2>
+            <p class="text-muted mb-0">
+                Bienvenido, <strong>{{ current_user.nombre }}</strong>
+                <span class="badge bg-success ms-2">Padre</span>
+            </p>
+        </div>
+        <div class="text-end">
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalContactarAdmin">
+                    <i class="fas fa-headset me-1"></i> Contactar Admin
+                </button>
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i> Imprimir
+                </button>
             </div>
         </div>
     </div>
-    
-    <!-- Sección de estudiantes -->
-    <div class="row mb-4">
+
+    <!-- Estadísticas Rápidas -->
+    <div class="row mb-4" id="estadisticas">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-2">Total Hijos</h6>
+                            <h2 class="card-value mb-0">{{ hijos|length }}</h2>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-child"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card {% if pagos|selectattr('pago.estado', 'equalto', 'pendiente')|list|length > 0 %}bg-warning text-dark{% else %}bg-success text-white{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-2">Pagos Pendientes</h6>
+                            <h2 class="card-value mb-0">
+                                {{ pagos|selectattr('pago.estado', 'equalto', 'pendiente')|list|length }}
+                            </h2>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-2">Días Restantes</h6>
+                            <h2 class="card-value mb-0">
+                                {% set dias_minimos = [] %}
+                                {% for pago in pagos if pago.pago.estado == 'pagado' and pago.pago.fecha_vencimiento %}
+                                    {% set dias = (pago.pago.fecha_vencimiento.date() - now.date()).days %}
+                                    {% if dias > 0 %}
+                                        {% set _ = dias_minimos.append(dias) %}
+                                    {% endif %}
+                                {% endfor %}
+                                {{ dias_minimos|min if dias_minimos else 0 }}
+                            </h2>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stat-card bg-dark text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-2">Notificaciones</h6>
+                            <h2 class="card-value mb-0">{{ notificaciones|length }}</h2>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Hijos -->
+    <div class="row mb-4" id="hijos">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="bi bi-people"></i> Mis Estudiantes</h5>
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-child me-2"></i>Mis Hijos
+                    </h5>
                 </div>
                 <div class="card-body">
-                    {% if estudiantes %}
+                    {% if hijos %}
                     <div class="row">
-                        {% for estudiante in estudiantes %}
-                        <div class="col-md-4 mb-3">
-                            <div class="card student-card h-100">
+                        {% for hijo in hijos %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100 border-start border-4 border-success">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
                                         <div>
-                                            <h5 class="card-title">{{ estudiante.nombre }}</h5>
-                                            <p class="card-text">
-                                                <span class="badge bg-info">{{ estudiante.grado }}</span>
-                                                <span class="badge bg-secondary">{{ estudiante.edad }} años</span>
+                                            <h5 class="card-title mb-1">{{ hijo.nombre }}</h5>
+                                            <p class="text-muted mb-1">
+                                                <i class="fas fa-graduation-cap me-1"></i>{{ hijo.grado }}
+                                            </p>
+                                            <p class="text-muted mb-2">
+                                                <i class="fas fa-school me-1"></i>{{ hijo.escuela }}
                                             </p>
                                         </div>
-                                        <div class="avatar bg-primary text-white rounded-circle" 
-                                            style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">
-                                            {{ estudiante.nombre[0] }}
-                                        </div>
+                                        <span class="badge bg-info">{{ hijo.edad }} años</span>
                                     </div>
                                     
+                                    <!-- Información de Ruta -->
+                                    {% if hijo.ruta %}
                                     <div class="mb-3">
-                                        <small class="text-muted d-block">
-                                            <i class="bi bi-building"></i> 
-                                            {{ estudiante.escuela or 'Escuela no especificada' }}
+                                        <h6 class="text-muted mb-2">
+                                            <i class="fas fa-route me-1"></i> Ruta Asignada
+                                        </h6>
+                                        <div class="ps-3">
+                                            <p class="mb-1"><strong>{{ hijo.ruta.nombre }}</strong></p>
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                {{ hijo.ruta.hora_inicio }} - {{ hijo.ruta.hora_fin }}
+                                            </small>
+                                            {% if hijo.ruta.conductor_rel %}
+                                            <p class="mb-0 mt-1">
+                                                <i class="fas fa-user-tie me-1"></i>
+                                                Conductor: {{ hijo.ruta.conductor_rel.nombre }}
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="alert alert-warning py-2 mb-3">
+                                        <small>
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            Sin ruta asignada
                                         </small>
-                                        {% if estudiante.ruta %}
-                                        <small class="text-muted d-block">
-                                            <i class="bi bi-signpost"></i> 
-                                            Ruta: {{ estudiante.ruta.nombre }}
-                                        </small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- Estado del Pago -->
+                                    {% set ultimo_pago = hijo.pagos|sort(attribute='fecha_vencimiento', reverse=true)|first if hijo.pagos else none %}
+                                    <div class="mb-3">
+                                        <h6 class="text-muted mb-2">
+                                            <i class="fas fa-money-check me-1"></i> Estado de Pago
+                                        </h6>
+                                        {% if ultimo_pago %}
+                                        <div class="ps-3">
+                                            <p class="mb-1">
+                                                Estado: 
+                                                <span class="badge {% if ultimo_pago.estado == 'pagado' %}bg-success{% else %}bg-warning{% endif %}">
+                                                    {{ ultimo_pago.estado|title }}
+                                                </span>
+                                            </p>
+                                            {% if ultimo_pago.fecha_vencimiento %}
+                                            <p class="mb-0">
+                                                Vence: {{ ultimo_pago.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                                                {% set dias_restantes = (ultimo_pago.fecha_vencimiento.date() - now.date()).days %}
+                                                <span class="badge {% if dias_restantes > 7 %}bg-success{% elif dias_restantes > 0 %}bg-warning{% else %}bg-danger{% endif %} ms-2">
+                                                    {{ dias_restantes }} días
+                                                </span>
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                        {% else %}
+                                        <div class="alert alert-danger py-2">
+                                            <small>
+                                                <i class="fas fa-exclamation-circle me-1"></i>
+                                                No hay registros de pago
+                                            </small>
+                                        </div>
                                         {% endif %}
                                     </div>
                                     
-                                    <div class="d-grid gap-2">
-                                        <a href="{{ url_for('ver_ruta', estudiante_id=estudiante.id) }}" 
-                                                class="btn btn-outline-primary btn-sm">
-                                            <i class="bi bi-geo-alt"></i> Ver Ruta
+                                    <!-- Última Asistencia -->
+                                    {% set ultima_asistencia = hijo.asistencias|sort(attribute='fecha', reverse=true)|first if hijo.asistencias else none %}
+                                    {% if ultima_asistencia %}
+                                    <div>
+                                        <h6 class="text-muted mb-2">
+                                            <i class="fas fa-clipboard-check me-1"></i> Última Asistencia
+                                        </h6>
+                                        <div class="ps-3">
+                                            <p class="mb-1">
+                                                {{ ultima_asistencia.fecha.strftime('%d/%m/%Y') }}
+                                                <span class="badge {% if ultima_asistencia.estado == 'presente' %}bg-success{% elif ultima_asistencia.estado == 'ausente' %}bg-danger{% else %}bg-warning{% endif %} ms-2">
+                                                    {{ ultima_asistencia.estado|title }}
+                                                </span>
+                                            </p>
+                                            {% if ultima_asistencia.observaciones %}
+                                            <p class="text-muted mb-0 small">
+                                                <i class="fas fa-comment me-1"></i>
+                                                {{ ultima_asistencia.observaciones }}
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if hijo.ruta %}
+                                    <div class="mt-3">
+                                        <a href="{{ url_for('padre_ruta', estudiante_id=hijo.id) }}" class="btn btn-outline-primary w-100">
+                                            <i class="fas fa-map-marked-alt me-1"></i> Ver Ruta en Tiempo Real
                                         </a>
                                     </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <div class="text-center py-4">
-                        <i class="bi bi-people display-1 text-muted"></i>
-                        <p class="text-muted mt-3">No tienes estudiantes asignados</p>
-                        <p class="text-muted">Contacta al administrador para asignar estudiantes</p>
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-slash fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No tienes hijos registrados</h4>
+                        <p class="text-muted">Contacta al administrador para registrar a tus hijos.</p>
                     </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Sección de pagos pendientes -->
-    <div class="row">
+
+    <!-- Sección de Pagos Pendientes (CORREGIDO) -->
+    <div class="row mb-4" id="pagos">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Pagos Pendientes</h5>
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Pagos Pendientes
+                    </h5>
                 </div>
                 <div class="card-body">
-                    {% if pagos_pendientes %}
+                    {% if pagos %}
                     <div class="table-responsive">
                         <table class="table table-hover">
-                            <thead>
+                            <thead class="table-warning">
                                 <tr>
                                     <th>Estudiante</th>
-                                    <th>Concepto</th>
                                     <th>Monto</th>
                                     <th>Vencimiento</th>
+                                    <th>Días Restantes</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for pago in pagos_pendientes %}
+                                {% for item in pagos %}
+                                {% set pago = item.pago %}
+                                {% set estudiante = item.estudiante %}
                                 <tr>
-                                    <td>{{ pago.estudiante.nombre }}</td>
-                                    <td>Transporte escolar</td>
-                                    <td class="fw-bold">${{ "%.2f"|format(pago.monto) }}</td>
+                                    <!-- CORREGIDO: Usamos item.estudiante en lugar de pago.estudiante -->
                                     <td>
-                                        {% if pago.fecha_vencimiento %}
+                                        <strong>{{ estudiante.nombre }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ estudiante.grado }}</small>
+                                    </td>
+                                    <td>
+                                        <strong>C$ {{ "%.2f"|format(pago.monto) }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ pago.meses_cubiertos }} semana(s)</small>
+                                    </td>
+                                    <td>
                                         {{ pago.fecha_vencimiento.strftime('%d/%m/%Y') }}
-                                        {% else %}
-                                        <span class="text-muted">Por definir</span>
-                                        {% endif %}
+                                        <br>
+                                        <small class="text-muted">{{ pago.fecha_vencimiento.strftime('%H:%M') }}</small>
                                     </td>
                                     <td>
-                                        {% if pago.estado == 'pagado' %}
-                                        <span class="badge bg-success">Pagado</span>
-                                        {% else %}
-                                        <span class="badge bg-warning">Pendiente</span>
-                                        {% endif %}
+                                        {% set dias_restantes = (pago.fecha_vencimiento.date() - now.date()).days %}
+                                        <span class="badge {% if dias_restantes > 7 %}bg-success{% elif dias_restantes > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ dias_restantes }} días
+                                        </span>
                                     </td>
                                     <td>
-                                        {% if pago.estado == 'pendiente' %}
-                                        <button class="btn btn-sm btn-success" 
-                                                onclick="realizarPago({{ pago.id }})">
-                                            <i class="bi bi-credit-card"></i> Pagar
-                                        </button>
-                                        {% endif %}
+                                        <span class="badge {% if pago.estado == 'pagado' %}bg-success{% elif pago.estado == 'pendiente' %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ pago.estado|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary"
+                                                type="button"
+                                                data-pago-estudiante="{{ estudiante.nombre }} - {{ estudiante.grado }}"
+                                                data-pago-monto="C$ {{ '%.2f'|format(pago.monto) }} ({{ pago.meses_cubiertos }} semana(s))"
+                                                data-pago-vencimiento="{{ pago.fecha_vencimiento.strftime('%d/%m/%Y %H:%M') }}"
+                                                data-pago-estado="{{ pago.estado|title }}"
+                                                data-pago-descripcion="{{ pago.descripcion or '' }}"
+                                                onclick="abrirModalPago(this)">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-success" onclick="marcarPagoComoVisto({{ pago.id }})">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalContactarAdmin">
+                                                <i class="fas fa-question-circle"></i>
+                                            </button>
+                                        </div>
+                                        
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
+                            <tfoot>
+                                <tr class="table-warning">
+                                    <th colspan="2">Total Pendiente:</th>
+                                    <td colspan="4" class="text-end">
+                                        <strong>C$ {{ "%.2f"|format(pagos|selectattr('pago.estado', 'equalto', 'pendiente')|sum(attribute='pago.monto') or 0) }}</strong>
+                                    </td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Importante:</strong> Los pagos deben realizarse antes de la fecha de vencimiento. 
+                        Contacta al administrador si necesitas más información.
+                    </div>
                     {% else %}
-                    <div class="text-center py-4">
-                        <i class="bi bi-check-circle display-1 text-success"></i>
-                        <p class="text-success mt-3">¡Excelente! No tienes pagos pendientes</p>
+                    <div class="text-center py-5">
+                        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                        <h4 class="text-success">¡No tienes pagos pendientes!</h4>
+                        <p class="text-muted">Todos tus pagos están al día.</p>
                     </div>
                     {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Notificaciones -->
+    <div class="row mb-4" id="notificaciones">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bell me-2"></i>Últimas Notificaciones
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if notificaciones %}
+                    <div class="list-group list-group-flush">
+                        {% for notif in notificaciones %}
+                        <a href="{{ notif.link or '#' }}" class="list-group-item list-group-item-action {% if not notif.leida %}active{% endif %}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="fas 
+                                            {% if notif.tipo == 'pago' %}fa-money-bill-wave
+                                            {% elif notif.tipo == 'asistencia' %}fa-clipboard-check
+                                            {% elif notif.tipo == 'retraso' %}fa-clock
+                                            {% elif notif.tipo == 'estudiante' %}fa-user-graduate
+                                            {% else %}fa-info-circle{% endif %}
+                                            me-2"></i>
+                                        <h6 class="mb-0">{{ notif.tipo|title }}</h6>
+                                        {% if not notif.leida %}
+                                        <span class="badge bg-danger ms-2">Nuevo</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="mb-1">{{ notif.mensaje }}</p>
+                                </div>
+                                <small class="text-muted">{{ notif.fecha.strftime('%d/%m %H:%M') }}</small>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-bell-slash fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No hay notificaciones</h4>
+                        <p class="text-muted">Las notificaciones aparecerán aquí cuando haya novedades.</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer text-center">
+                    <button class="btn btn-sm btn-outline-info" onclick="marcarTodasLeidas()">
+                        <i class="fas fa-check-double me-1"></i> Marcar todas como leídas
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información de Contacto -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-phone me-2"></i>Contacto</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6><i class="fas fa-user-tie me-2"></i>Administrador</h6>
+                        <p class="mb-1">Email: admin@camley.com</p>
+                        <p class="mb-0">Teléfono: +505 7522-2739</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6><i class="fas fa-bus me-2"></i>Soporte Técnico</h6>
+                        <p class="mb-1">Email: soporte@camley.com</p>
+                        <p class="mb-0">Horario: 8:00 AM - 6:00 PM</p>
+                    </div>
+                    <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#modalContactarAdmin">
+                        <i class="fas fa-headset me-1"></i> Contactar Ahora
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Información del Sistema</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6><i class="fas fa-user me-2"></i>Tu Información</h6>
+                        <p class="mb-1"><strong>Nombre:</strong> {{ current_user.nombre }}</p>
+                        <p class="mb-1"><strong>Email:</strong> {{ current_user.email }}</p>
+                        <p class="mb-1"><strong>Teléfono:</strong> {{ current_user.telefono or 'No registrado' }}</p>
+                        <p class="mb-0"><strong>Dirección:</strong> {{ current_user.direccion or 'No registrada' }}</p>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Recuerda:</strong> Mantén tus datos actualizados para recibir notificaciones importantes.
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para realizar pago -->
-<div class="modal fade" id="paymentModal" tabindex="-1">
+<!-- Modal único para detalles de pago -->
+<div class="modal fade" id="modalPagoDetalle" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="bi bi-credit-card"></i> Realizar Pago</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles del Pago</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="paymentForm">
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Estudiante:</strong>
+                    <p id="detalleEstudiante"></p>
+                </div>
+                <div class="mb-3">
+                    <strong>Monto:</strong>
+                    <p id="detalleMonto"></p>
+                </div>
+                <div class="mb-3">
+                    <strong>Vencimiento:</strong>
+                    <p id="detalleVencimiento"></p>
+                </div>
+                <div class="mb-3">
+                    <strong>Estado:</strong>
+                    <p id="detalleEstado"></p>
+                </div>
+                <div class="mb-3" id="detalleDescripcionWrap" style="display: none;">
+                    <strong>Descripción:</strong>
+                    <p id="detalleDescripcion"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Contactar Admin -->
+<div class="modal fade" id="modalContactarAdmin" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-headset me-2"></i>Contactar Administrador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formContactarAdmin" onsubmit="enviarMensajeAdmin(event)">
                 <div class="modal-body">
-                    <div id="paymentDetails"></div>
                     <div class="mb-3">
-                        <label class="form-label">Método de Pago *</label>
-                        <select class="form-select" name="metodo_pago" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="tarjeta">Tarjeta de Crédito/Débito</option>
-                            <option value="transferencia">Transferencia Bancaria</option>
-                            <option value="paypal">PayPal</option>
+                        <label class="form-label">Asunto *</label>
+                        <select class="form-select" name="asunto" required>
+                            <option value="">Seleccionar asunto...</option>
+                            <option value="pago">Consulta sobre pago</option>
+                            <option value="ruta">Información de ruta</option>
+                            <option value="estudiante">Información de estudiante</option>
+                            <option value="retraso">Reportar retraso</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mensaje *</label>
+                        <textarea class="form-control" name="mensaje" rows="5" 
+                                placeholder="Describe tu consulta o problema..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Prioridad</label>
+                        <select class="form-select" name="prioridad">
+                            <option value="baja">Baja</option>
+                            <option value="media" selected>Media</option>
+                            <option value="alta">Alta</option>
                         </select>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Confirmar Pago</button>
+                    <button type="submit" class="btn btn-primary">Enviar Mensaje</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-{% endblock %}
-
-{% block scripts %}
+<!-- JavaScript específico para panel de padre -->
 <script>
-let currentPagoId = null;
+function marcarPagoComoVisto(pagoId) {
+    if (confirm('¿Marcar este pago como revisado?')) {
+        fetch(`/api/pagos/${pagoId}/marcar_visto`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('✅ Pago marcado como revisado', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showNotification('❌ Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showNotification('❌ Error de conexión', 'danger');
+        });
+    }
+}
 
-function realizarPago(pagoId) {
-    currentPagoId = pagoId;
-    
-    // Aquí normalmente obtendrías los detalles del pago del servidor
-    document.getElementById('paymentDetails').innerHTML = `
-        <div class="alert alert-info">
-            <p><strong>Proceso de pago simulado</strong></p>
-            <p>En una implementación real, aquí se integraría con una pasarela de pagos.</p>
-        </div>
-    `;
-    
-    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+function abrirModalPago(btn) {
+    if (!btn) return;
+    document.getElementById('detalleEstudiante').textContent = btn.dataset.pagoEstudiante || '';
+    document.getElementById('detalleMonto').textContent = btn.dataset.pagoMonto || '';
+    document.getElementById('detalleVencimiento').textContent = btn.dataset.pagoVencimiento || '';
+    document.getElementById('detalleEstado').textContent = btn.dataset.pagoEstado || '';
+    const desc = btn.dataset.pagoDescripcion || '';
+    const wrap = document.getElementById('detalleDescripcionWrap');
+    const descEl = document.getElementById('detalleDescripcion');
+    if (desc) {
+        descEl.textContent = desc;
+        wrap.style.display = 'block';
+    } else {
+        wrap.style.display = 'none';
+    }
+    const modal = new bootstrap.Modal(document.getElementById('modalPagoDetalle'), { backdrop: 'static' });
     modal.show();
 }
 
-document.getElementById('paymentForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    if (!currentPagoId) return;
-    
-    // Simular pago exitoso
-    fetch('/padres/pagos/realizar/' + currentPagoId, {
+function marcarTodasLeidas() {
+    fetch('/api/notificaciones/marcar_todas_leidas', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            metodo_pago: this.metodo_pago.value
-        })
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        }
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Pago realizado exitosamente!');
-            location.reload();
-        } else {
-            alert('❌ Error: ' + data.error);
+            showNotification('✅ Todas las notificaciones marcadas como leídas', 'success');
+            setTimeout(() => location.reload(), 1500);
+        }
+    });
+}
+
+function enviarMensajeAdmin(event) {
+    event.preventDefault();
+    const form = document.getElementById('formContactarAdmin');
+    const button = form.querySelector('button[type="submit"]');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
+    button.disabled = true;
+    
+    const formData = new FormData(form);
+    
+    fetch('/api/contactar_admin', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
         }
     })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('✅ Mensaje enviado al administrador', 'success');
+            $('#modalContactarAdmin').modal('hide');
+            form.reset();
+        } else {
+            showNotification('❌ Error: ' + data.error, 'danger');
+        }
+        button.innerHTML = originalText;
+        button.disabled = false;
+    })
     .catch(error => {
-        alert('❌ Error de conexión');
+        showNotification('❌ Error de conexión', 'danger');
+        button.innerHTML = originalText;
+        button.disabled = false;
     });
-});
+}
+
+// Auto-refresh cada 60 segundos para notificaciones
+setInterval(() => {
+    const notificationBadge = document.getElementById('notificationBadge');
+    if (notificationBadge) {
+        fetch(`/api/notificaciones/count/${window.currentUserId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.count > 0) {
+                    notificationBadge.textContent = data.count;
+                    notificationBadge.classList.remove('d-none');
+                } else {
+                    notificationBadge.classList.add('d-none');
+                }
+            });
+    }
+}, 60000);
 </script>
+
+<style>
+/* Estilos específicos para panel de padre */
+.stat-card {
+    transition: transform 0.3s;
+    cursor: pointer;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #4e73df;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.notification-item {
+    border-left: 4px solid;
+    padding: 10px 15px;
+    margin-bottom: 5px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+.notification-item.active {
+    background-color: #e3f2fd;
+}
+
+.notification-item:hover {
+    background-color: #e9ecef;
+    text-decoration: none;
+}
+
+.border-success {
+    border-left-color: #28a745 !important;
+}
+
+.border-warning {
+    border-left-color: #ffc107 !important;
+}
+
+.border-info {
+    border-left-color: #17a2b8 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .card-value {
+        font-size: 1.5rem;
+    }
+    
+    .btn-group {
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+    }
+}
+</style>
 {% endblock %}

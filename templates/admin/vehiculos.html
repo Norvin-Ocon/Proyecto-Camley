@@ -248,6 +248,14 @@
                                         <i class="bi bi-person-plus"></i>
                                     </button>
                                     {% endif %}
+                                    
+                                    <button type="button" 
+                                            class="btn btn-danger"
+                                            onclick="eliminarVehiculo({{ vehiculo.id }})"
+                                            data-bs-toggle="tooltip" 
+                                            title="Eliminar vehículo">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -419,6 +427,65 @@
     </div>
 </div>
 
+<!-- Modal editar vehículo -->
+<div class="modal fade" id="editVehicleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Vehículo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editVehicleForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editVehicleId" name="vehiculo_id">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Placa</label>
+                            <input type="text" class="form-control" id="editPlaca" name="placa" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Marca</label>
+                            <input type="text" class="form-control" id="editMarca" name="marca" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Modelo</label>
+                            <input type="text" class="form-control" id="editModelo" name="modelo" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Año</label>
+                            <input type="number" class="form-control" id="editAnio" name="año" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Capacidad</label>
+                            <input type="number" class="form-control" id="editCapacidad" name="capacidad" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Estado</label>
+                            <select class="form-select" id="editEstado" name="estado" required>
+                                <option value="activo">Activo</option>
+                                <option value="mantenimiento">Mantenimiento</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Kilometraje</label>
+                        <input type="number" class="form-control" id="editKilometraje" name="kilometraje">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -432,7 +499,8 @@ function filterVehicles(status) {
     
     // Actualizar botones activos
     buttons.forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    const btn = (typeof event !== 'undefined' && event.target) ? event.target : document.activeElement;
+    if (btn) btn.classList.add('active');
     
     rows.forEach(row => {
         if (status === 'all' || row.getAttribute('data-status') === status) {
@@ -474,43 +542,32 @@ document.getElementById('filterConductor').addEventListener('change', function()
 
 // Ver detalles del vehículo
 function verDetalles(vehicleId) {
-    // En una implementación real, esto obtendría los datos del servidor
-    const detalles = `
-        <div class="row">
-            <div class="col-md-6">
-                <h6>Información General</h6>
-                <p><strong>Placa:</strong> ABC-123</p>
-                <p><strong>Marca/Modelo:</strong> Toyota Hiace</p>
-                <p><strong>Año:</strong> 2022</p>
-                <p><strong>Capacidad:</strong> 15 pasajeros</p>
-            </div>
-            <div class="col-md-6">
-                <h6>Estado y Mantenimiento</h6>
-                <p><strong>Estado:</strong> <span class="badge bg-success">Activo</span></p>
-                <p><strong>Kilometraje:</strong> 45,230 km</p>
-                <p><strong>Último mantenimiento:</strong> 15/01/2024</p>
-                <p><strong>Próximo mantenimiento:</strong> 15/02/2024</p>
-            </div>
-        </div>
-        <hr>
-        <div class="row">
-            <div class="col-12">
-                <h6>Historial de Asignaciones</h6>
-                <ul class="list-group">
-                    <li class="list-group-item">
-                        <small>Carlos López (01/02/2024 - Actual)</small>
-                    </li>
-                    <li class="list-group-item">
-                        <small>Juan Pérez (15/01/2024 - 31/01/2024)</small>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('vehicleDetailsContent').innerHTML = detalles;
-    const modal = new bootstrap.Modal(document.getElementById('vehicleDetailsModal'));
-    modal.show();
+    fetch(`/admin/vehiculos/${vehicleId}/detalle`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+            const v = data.vehiculo;
+            const detalles = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Información General</h6>
+                        <p><strong>Placa:</strong> ${v.placa}</p>
+                        <p><strong>Marca/Modelo:</strong> ${v.marca} ${v.modelo}</p>
+                        <p><strong>Año:</strong> ${v.año}</p>
+                        <p><strong>Capacidad:</strong> ${v.capacidad} pasajeros</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Estado y Mantenimiento</h6>
+                        <p><strong>Estado:</strong> ${v.estado}</p>
+                        <p><strong>Kilometraje:</strong> ${v.kilometraje} km</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('vehicleDetailsContent').innerHTML = detalles;
+            const modal = new bootstrap.Modal(document.getElementById('vehicleDetailsModal'));
+            modal.show();
+        })
+        .catch(() => {});
 }
 
 // Asignar conductor
@@ -590,9 +647,47 @@ function cambiarEstado(vehicleId) {
 
 // Editar vehículo
 function editarVehiculo(vehicleId) {
-    // Redirigir a página de edición
-    alert('Funcionalidad de edición en desarrollo. Vehículo ID: ' + vehicleId);
+    fetch(`/admin/vehiculos/${vehicleId}/detalle`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+            document.getElementById('editVehicleId').value = vehicleId;
+            document.getElementById('editPlaca').value = data.vehiculo.placa || '';
+            document.getElementById('editMarca').value = data.vehiculo.marca || '';
+            document.getElementById('editModelo').value = data.vehiculo.modelo || '';
+            document.getElementById('editAnio').value = data.vehiculo.año || '';
+            document.getElementById('editCapacidad').value = data.vehiculo.capacidad || '';
+            document.getElementById('editEstado').value = data.vehiculo.estado || 'activo';
+            document.getElementById('editKilometraje').value = data.vehiculo.kilometraje || '';
+            const modal = new bootstrap.Modal(document.getElementById('editVehicleModal'));
+            modal.show();
+        });
 }
+
+function eliminarVehiculo(vehicleId) {
+    if (!confirm('¿Eliminar este vehículo? Esta acción no se puede deshacer.')) return;
+    fetch(`/admin/vehiculos/${vehicleId}/eliminar`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert('Error: ' + data.error);
+        })
+        .catch(() => alert('Error de conexión'));
+}
+
+// Guardar cambios de vehículo
+document.getElementById('editVehicleForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = document.getElementById('editVehicleId').value;
+    const formData = new FormData(e.currentTarget);
+    fetch(`/admin/vehiculos/${id}/editar`, { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert('Error: ' + data.error);
+        })
+        .catch(() => alert('Error de conexión'));
+});
 
 // Inicializar tooltips
 document.addEventListener('DOMContentLoaded', function() {

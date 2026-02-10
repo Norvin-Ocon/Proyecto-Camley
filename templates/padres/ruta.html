@@ -23,23 +23,10 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <!-- Mapa simulado -->
-                    <div class="map-container bg-light rounded mb-4" style="height: 300px;">
-                        <div class="h-100 d-flex flex-column align-items-center justify-content-center">
-                            <i class="bi bi-map display-1 text-muted"></i>
-                            <p class="text-muted mt-3">Mapa en tiempo real</p>
-                            <p class="text-muted">(En producción se integraría con Google Maps)</p>
-                            
-                            {% if ubicacion_vehiculo %}
-                            <div class="alert alert-info mt-3">
-                                <i class="bi bi-geo"></i> 
-                                <strong>Última ubicación:</strong> 
-                                {{ ubicacion_vehiculo.lat|round(4) }}, {{ ubicacion_vehiculo.lng|round(4) }}
-                                <br>
-                                <small>Actualizado: {{ ubicacion_vehiculo.ultima_actualizacion }}</small>
-                            </div>
-                            {% endif %}
-                        </div>
+                    <!-- Mapa en tiempo real (Leaflet) -->
+                    <div id="map" class="rounded mb-4" style="height: 300px;"></div>
+                    <div class="small text-muted">
+                        Última actualización: <span id="lastUpdate">-</span>
                     </div>
                     
                     <!-- Información de la ruta -->
@@ -169,15 +156,58 @@
 
 {% block scripts %}
 <script>
+let map;
+let marker;
+const conductorId = {{ conductor.id if conductor else 0 }};
+let lastUpdateValue = null;
+let hasCentered = false;
+
+function initMap() {
+    const initialLat = {{ ubicacion_vehiculo.lat if ubicacion_vehiculo else 12.1364 }};
+    const initialLng = {{ ubicacion_vehiculo.lng if ubicacion_vehiculo else -86.2514 }};
+    
+    map = L.map('map').setView([initialLat, initialLng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    
+    marker = L.marker([initialLat, initialLng]).addTo(map);
+}
+
 function actualizarUbicacion() {
-    // Simular actualización
+    if (!conductorId) return;
+    fetch(`/api/conductor/${conductorId}/ubicacion`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+            const lat = data.lat;
+            const lng = data.lng;
+            marker.setLatLng([lat, lng]);
+            if (!hasCentered) {
+                map.setView([lat, lng], 15);
+                hasCentered = true;
+            } else {
+                map.panTo([lat, lng], { animate: true, duration: 1.0 });
+            }
+            document.getElementById('lastUpdate').textContent = data.ultima_actualizacion;
+            if (data.ultima_actualizacion !== lastUpdateValue) {
+                notificarActualizacion();
+                lastUpdateValue = data.ultima_actualizacion;
+            }
+        })
+        .catch(() => {});
+}
+
+// Notificación simple cuando se actualiza la ubicación
+function notificarActualizacion() {
     const notification = document.createElement('div');
     notification.className = 'alert alert-info alert-dismissible fade show mb-2';
     notification.innerHTML = `
-        <i class="bi bi-check-circle"></i> Ubicación actualizada hace 2 minutos
+        <i class="bi bi-check-circle"></i> Ubicación actualizada
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    document.getElementById('notificationsList').prepend(notification);
+    const list = document.getElementById('notificationsList');
+    if (list) list.prepend(notification);
 }
 
 function contactarConductor() {
@@ -222,7 +252,10 @@ function simularNotificacion() {
     }
 }
 
-// Actualizar automáticamente cada 30 segundos
-setInterval(actualizarUbicacion, 30000);
+document.addEventListener('DOMContentLoaded', () => {
+    initMap();
+    actualizarUbicacion();
+    setInterval(actualizarUbicacion, 5000);
+});
 </script>
 {% endblock %}

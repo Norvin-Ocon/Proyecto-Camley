@@ -66,11 +66,15 @@
                             <h6 class="mb-0"><i class="bi bi-geo-alt"></i> Sistema de GPS</h6>
                         </div>
                         <div class="card-body">
+                            <div id="mapConductor" class="rounded mb-3" style="height: 220px;"></div>
                             <div id="locationStatus" class="mb-3">
                                 <span class="text-muted">📍 Ubicación no actualizada</span>
                             </div>
                             <button class="btn btn-primary" id="updateLocationBtn">
                                 <i class="bi bi-geo"></i> Actualizar Mi Ubicación
+                            </button>
+                            <button class="btn btn-outline-success ms-2" id="liveTrackingBtn">
+                                <i class="bi bi-broadcast"></i> Iniciar Seguimiento en Tiempo Real
                             </button>
                             <button class="btn btn-outline-info" id="simulateLocationBtn">
                                 <i class="bi bi-map"></i> Simular Ubicación
@@ -105,19 +109,35 @@
                                     <td>{{ estudiante.grado }}</td>
                                     <td>{{ estudiante.escuela or 'N/A' }}</td>
                                     <td>
+                                        {% set asistencia = asistencia_map.get(estudiante.id) %}
+                                        {% if asistencia %}
+                                            {% if asistencia.estado == 'presente' %}
+                                            <span class="badge bg-success" id="status-{{ estudiante.id }}">Presente</span>
+                                            {% elif asistencia.estado == 'ausente' %}
+                                            <span class="badge bg-danger" id="status-{{ estudiante.id }}">Ausente</span>
+                                            {% elif asistencia.estado == 'tardanza' %}
+                                            <span class="badge bg-warning" id="status-{{ estudiante.id }}">Tardanza</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary" id="status-{{ estudiante.id }}">{{ asistencia.estado }}</span>
+                                            {% endif %}
+                                        {% else %}
                                         <span class="badge bg-secondary" id="status-{{ estudiante.id }}">
-                                            No abordado
+                                            Sin registro
                                         </span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">
+                                            {% set asistencia = asistencia_map.get(estudiante.id) %}
                                             <button class="btn btn-success" 
-                                                    onclick="marcarAbordaje({{ estudiante.id }}, 'abordado')">
-                                                <i class="bi bi-check-circle"></i> Abordó
+                                                    onclick="marcarAbordaje({{ estudiante.id }}, 'abordado')"
+                                                    {% if asistencia %}disabled{% endif %}>
+                                                <i class="bi bi-check-circle"></i> Presente
                                             </button>
                                             <button class="btn btn-warning" 
-                                                    onclick="marcarAbordaje({{ estudiante.id }}, 'bajo')">
-                                                <i class="bi bi-x-circle"></i> Bajó
+                                                    onclick="marcarAbordaje({{ estudiante.id }}, 'bajo')"
+                                                    {% if asistencia %}disabled{% endif %}>
+                                                <i class="bi bi-x-circle"></i> Ausente
                                             </button>
                                         </div>
                                     </td>
@@ -184,13 +204,13 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <button class="btn btn-outline-warning w-100 mb-2" onclick="enviarNotificacion('retraso')">
+                        <button class="btn btn-outline-warning w-100 mb-2" onclick="enviarAuto('retraso')">
                             <i class="bi bi-clock-history"></i> Reportar Retraso
                         </button>
                         <button class="btn btn-outline-danger w-100 mb-2" onclick="enviarNotificacion('problema')">
-                            <i class="bi bi-exclamation-triangle"></i> Reportar Problema
+                            <i class="bi bi-exclamation-triangle"></i> Reportar Problema (Admin)
                         </button>
-                        <button class="btn btn-outline-success w-100" onclick="enviarNotificacion('llegada')">
+                        <button class="btn btn-outline-success w-100" onclick="enviarAuto('llegada')">
                             <i class="bi bi-check-circle"></i> Llegada a Escuela
                         </button>
                     </div>
@@ -250,16 +270,36 @@ let boardedCount = 0;
 let droppedCount = 0;
 let currentNotificationType = '';
 
+function resetAsistenciasUI() {
+    boardedCount = 0;
+    droppedCount = 0;
+    document.getElementById('studentsBoarded').textContent = boardedCount;
+    document.getElementById('studentsDropped').textContent = droppedCount;
+    const statusEls = document.querySelectorAll('[id^="status-"]');
+    statusEls.forEach(el => {
+        el.className = 'badge bg-secondary';
+        el.textContent = 'Sin registro';
+        el.dataset.locked = 'false';
+        const row = el.closest('tr');
+        if (row) {
+            row.querySelectorAll('button').forEach(b => b.disabled = false);
+        }
+    });
+}
+
 function marcarAbordaje(estudianteId, accion) {
     const statusElement = document.getElementById(`status-${estudianteId}`);
+    if (statusElement.dataset.locked === 'true') {
+        return;
+    }
     
     if (accion === 'abordado') {
         statusElement.className = 'badge bg-success';
-        statusElement.textContent = 'Abordado';
+        statusElement.textContent = 'Presente';
         boardedCount++;
     } else {
         statusElement.className = 'badge bg-info';
-        statusElement.textContent = 'Bajó';
+        statusElement.textContent = 'Ausente';
         droppedCount++;
     }
     
@@ -267,16 +307,27 @@ function marcarAbordaje(estudianteId, accion) {
     document.getElementById('studentsDropped').textContent = droppedCount;
     
     // Enviar al servidor (simulado)
-    fetch('/conductor/asistencia/registrar', {
+    const formData = new FormData();
+    formData.append('estudiante_id', estudianteId);
+    formData.append('estado', accion === 'abordado' ? 'presente' : 'ausente');
+    
+    fetch('/conductor/registrar_asistencia', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            estudiante_id: estudianteId,
-            tipo: accion === 'abordado' ? 'entrada' : 'salida'
-        })
-    });
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            statusElement.dataset.locked = 'true';
+            const row = statusElement.closest('tr');
+            if (row) {
+                row.querySelectorAll('button').forEach(b => b.disabled = true);
+            }
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(() => alert('Error de conexión'));
 }
 
 function enviarNotificacion(tipo) {
@@ -290,7 +341,7 @@ function enviarNotificacion(tipo) {
     
     const messages = {
         'retraso': 'Los padres recibirán una notificación sobre el retraso.',
-        'problema': 'Se notificará a los padres y al administrador.',
+        'problema': 'Se notificará solo al administrador.',
         'llegada': 'Se notificará a los padres que has llegado a la escuela.'
     };
     
@@ -304,14 +355,73 @@ function enviarNotificacion(tipo) {
 document.getElementById('sendNotificationBtn').addEventListener('click', function() {
     const message = document.getElementById('notificationMessage').value;
     
-    // Simular envío
-    alert(`✅ Notificación enviada: ${currentNotificationType}\nMensaje: ${message}`);
+    const formData = new FormData();
+    formData.append('tipo', currentNotificationType);
+    formData.append('mensaje', message || '');
+    
+    fetch('/conductor/reportar', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ ${data.message}`);
+        } else {
+            alert(`❌ Error: ${data.error}`);
+        }
+    })
+    .catch(() => {
+        alert('❌ Error de conexión');
+    });
     
     const modal = bootstrap.Modal.getInstance(document.getElementById('notificationModal'));
     modal.hide();
 });
 
 // GPS
+let mapConductor;
+let markerConductor;
+let liveWatchId = null;
+let liveTrackingActive = false;
+
+function initMapConductor() {
+    mapConductor = L.map('mapConductor').setView([12.1364, -86.2514], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(mapConductor);
+    markerConductor = L.marker([12.1364, -86.2514]).addTo(mapConductor);
+}
+
+function enviarUbicacion(lat, lng, label) {
+    fetch('/conductor/ubicacion/actualizar', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ lat: lat, lng: lng })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('locationStatus').innerHTML = 
+                `<span class="text-success">✅ ${label}</span>
+                <br><small>Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}</small>`;
+            if (markerConductor) {
+                markerConductor.setLatLng([lat, lng]);
+                mapConductor.setView([lat, lng]);
+            }
+        } else {
+            document.getElementById('locationStatus').innerHTML = 
+                `<span class="text-danger">❌ Error: ${data.error}</span>`;
+        }
+    })
+    .catch(() => {
+        document.getElementById('locationStatus').innerHTML = 
+            `<span class="text-danger">❌ Error de conexión</span>`;
+    });
+}
+
 document.getElementById('updateLocationBtn').addEventListener('click', function() {
     const locationStatus = document.getElementById('locationStatus');
     locationStatus.innerHTML = '<span class="text-warning">📍 Obteniendo ubicación...</span>';
@@ -321,26 +431,7 @@ document.getElementById('updateLocationBtn').addEventListener('click', function(
             (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                
-                // Enviar al servidor
-                fetch('/conductor/ubicacion/actualizar', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ lat: lat, lng: lng })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        locationStatus.innerHTML = 
-                            `<span class="text-success">✅ Ubicación actualizada</span>
-                            <br><small>Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}</small>`;
-                    } else {
-                        locationStatus.innerHTML = 
-                            `<span class="text-danger">❌ Error: ${data.error}</span>`;
-                    }
-                });
+                enviarUbicacion(lat, lng, 'Ubicación actualizada');
             },
             (error) => {
                 locationStatus.innerHTML = 
@@ -353,6 +444,40 @@ document.getElementById('updateLocationBtn').addEventListener('click', function(
     }
 });
 
+function iniciarSeguimientoTiempoReal() {
+    const status = document.getElementById('locationStatus');
+    if (!navigator.geolocation) {
+        status.innerHTML = '<span class="text-danger">❌ Geolocalización no soportada</span>';
+        return;
+    }
+
+    if (liveTrackingActive && liveWatchId !== null) {
+        navigator.geolocation.clearWatch(liveWatchId);
+        liveWatchId = null;
+        liveTrackingActive = false;
+        document.getElementById('liveTrackingBtn').innerHTML = '<i class="bi bi-broadcast"></i> Iniciar Seguimiento en Tiempo Real';
+        status.innerHTML = '<span class="text-muted">📍 Seguimiento en tiempo real detenido</span>';
+        return;
+    }
+
+    status.innerHTML = '<span class="text-warning">📍 Iniciando seguimiento...</span>';
+    liveWatchId = navigator.geolocation.watchPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            enviarUbicacion(lat, lng, 'Ubicación en tiempo real');
+        },
+        () => {
+            status.innerHTML = '<span class="text-danger">❌ Error obteniendo ubicación en tiempo real</span>';
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    );
+    liveTrackingActive = true;
+    document.getElementById('liveTrackingBtn').innerHTML = '<i class="bi bi-broadcast"></i> Detener Seguimiento';
+}
+
+document.getElementById('liveTrackingBtn').addEventListener('click', iniciarSeguimientoTiempoReal);
+
 // Simular ubicación
 document.getElementById('simulateLocationBtn').addEventListener('click', function() {
     // Coordenadas de ejemplo en Nicaragua
@@ -364,38 +489,99 @@ document.getElementById('simulateLocationBtn').addEventListener('click', functio
     
     const randomLoc = locations[Math.floor(Math.random() * locations.length)];
     
-    fetch('/conductor/ubicacion/actualizar', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ lat: randomLoc.lat, lng: randomLoc.lng })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('locationStatus').innerHTML = 
-                `<span class="text-success">✅ Ubicación simulada: ${randomLoc.name}</span>
-                <br><small>Lat: ${randomLoc.lat.toFixed(4)}, Lng: ${randomLoc.lng.toFixed(4)}</small>`;
-        }
-    });
+    enviarUbicacion(randomLoc.lat, randomLoc.lng, `Ubicación simulada: ${randomLoc.name}`);
+});
+
+// Auto-tracking cada 15s (fallback si no hay seguimiento activo)
+document.addEventListener('DOMContentLoaded', function() {
+    initMapConductor();
+    setInterval(() => {
+        if (liveTrackingActive) return;
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                enviarUbicacion(position.coords.latitude, position.coords.longitude, 'Ubicación actualizada');
+            },
+            () => {}
+        );
+    }, 15000);
 });
 
 // Controles de ruta
 document.getElementById('startRouteBtn').addEventListener('click', function() {
-    if (confirm('¿Iniciar la ruta? Se notificará a los padres.')) {
+    if (!confirm('¿Iniciar la ruta?')) return;
+    fetch('/conductor/ruta/estado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'iniciada' })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            alert('❌ ' + (data.error || 'No se pudo iniciar'));
+            return;
+        }
         this.disabled = true;
+        document.getElementById('pauseRouteBtn').disabled = false;
         document.getElementById('endRouteBtn').disabled = false;
-        alert('✅ Ruta iniciada. Los padres han sido notificados.');
-    }
+        resetAsistenciasUI();
+        alert('✅ Ruta iniciada. Asistencias reiniciadas.');
+    });
+});
+
+document.getElementById('pauseRouteBtn').addEventListener('click', function() {
+    if (!confirm('¿Pausar la ruta?')) return;
+    fetch('/conductor/ruta/estado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'pausada' })
+    }).then(() => {
+        alert('⏸️ Ruta pausada.');
+    });
 });
 
 document.getElementById('endRouteBtn').addEventListener('click', function() {
-    if (confirm('¿Finalizar la ruta? Se notificará a los padres.')) {
+    if (!confirm('¿Finalizar la ruta?')) return;
+    fetch('/conductor/ruta/estado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'finalizada' })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            alert('❌ ' + (data.error || 'No se pudo finalizar'));
+            return;
+        }
         this.disabled = true;
         document.getElementById('startRouteBtn').disabled = false;
-        alert('✅ Ruta finalizada. Los padres han sido notificados.');
-    }
+        alert('✅ Ruta finalizada. Reporte enviado al administrador.');
+    });
 });
+
+function enviarAuto(tipo) {
+    const formData = new FormData();
+    formData.append('tipo', tipo);
+    fetch('/conductor/reportar', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        })
+        .catch(() => alert('❌ Error de conexión'));
+}
+
+function guardarAsistenciaManual() {
+    const presentes = document.getElementById('manualPresentes').value || 0;
+    const ausentes = document.getElementById('manualAusentes').value || 0;
+    fetch('/conductor/asistencia_manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ presentes: parseInt(presentes, 10), ausentes: parseInt(ausentes, 10) })
+    });
+}
 </script>
 {% endblock %}

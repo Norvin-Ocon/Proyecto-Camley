@@ -14,7 +14,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="text-primary">TOTAL INGRESOS</h6>
-                            <h3 class="mb-0">${{ "%.2f"|format(total_ingresos) }}</h3>
+                            <h3 class="mb-0">C$ {{ "%.2f"|format(total_ingresos) }}</h3>
                         </div>
                         <div class="align-self-center">
                             <i class="bi bi-arrow-up-circle text-primary fs-1"></i>
@@ -30,7 +30,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="text-danger">TOTAL GASTOS</h6>
-                            <h3 class="mb-0">${{ "%.2f"|format(total_gastos) }}</h3>
+                            <h3 class="mb-0">C$ {{ "%.2f"|format(total_gastos) }}</h3>
                         </div>
                         <div class="align-self-center">
                             <i class="bi bi-arrow-down-circle text-danger fs-1"></i>
@@ -46,7 +46,7 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="text-success">BALANCE</h6>
-                            <h3 class="mb-0">${{ "%.2f"|format(balance) }}</h3>
+                            <h3 class="mb-0">C$ {{ "%.2f"|format(balance) }}</h3>
                         </div>
                         <div class="align-self-center">
                             <i class="bi bi-calculator text-success fs-1"></i>
@@ -104,10 +104,10 @@
                             <thead>
                                 <tr>
                                     <th>Fecha</th>
-                                    <th>Tipo</th>
+                                    <th>Fuente</th>
                                     <th>Descripción</th>
                                     <th>Monto</th>
-                                    <th>Estudiante</th>
+                                    <th>Detalle</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -115,16 +115,12 @@
                                 <tr>
                                     <td>{{ ingreso.fecha.strftime('%d/%m/%Y') }}</td>
                                     <td>
-                                        <span class="badge bg-success">{{ ingreso.tipo }}</span>
+                                        <span class="badge bg-success">{{ ingreso.fuente }}</span>
                                     </td>
                                     <td>{{ ingreso.descripcion }}</td>
-                                    <td class="text-success fw-bold">+${{ "%.2f"|format(ingreso.monto) }}</td>
+                                    <td class="text-success fw-bold">+C$ {{ "%.2f"|format(ingreso.monto) }}</td>
                                     <td>
-                                        {% if ingreso.estudiante %}
-                                        {{ ingreso.estudiante.nombre }}
-                                        {% else %}
                                         <span class="text-muted">General</span>
-                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -147,10 +143,10 @@
                             <thead>
                                 <tr>
                                     <th>Fecha</th>
-                                    <th>Tipo</th>
+                                    <th>Categoría</th>
                                     <th>Descripción</th>
                                     <th>Monto</th>
-                                    <th>Registrado por</th>
+                                    <th>Detalle</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -158,16 +154,12 @@
                                 <tr>
                                     <td>{{ gasto.fecha.strftime('%d/%m/%Y') }}</td>
                                     <td>
-                                        <span class="badge bg-danger">{{ gasto.tipo }}</span>
+                                        <span class="badge bg-danger">{{ gasto.categoria }}</span>
                                     </td>
                                     <td>{{ gasto.descripcion }}</td>
-                                    <td class="text-danger fw-bold">-${{ "%.2f"|format(gasto.monto) }}</td>
+                                    <td class="text-danger fw-bold">-C$ {{ "%.2f"|format(gasto.monto) }}</td>
                                     <td>
-                                        {% if gasto.usuario %}
-                                        {{ gasto.usuario.nombre }}
-                                        {% else %}
                                         <span class="text-muted">Sistema</span>
-                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -190,15 +182,15 @@
 <div class="modal fade" id="addIncomeModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ url_for('agregar_ingreso_manual') }}">
+            <form id="formAgregarIngreso" method="POST" onsubmit="event.preventDefault(); agregarIngreso();">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Nuevo Ingreso</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Tipo *</label>
-                        <select class="form-select" name="tipo" required>
+                        <label class="form-label">Fuente *</label>
+                        <select class="form-select" name="fuente" required>
                             <option value="">Seleccionar...</option>
                             <option value="pago_estudiante">Pago de Estudiante</option>
                             <option value="subsidio">Subsidio</option>
@@ -214,7 +206,7 @@
                     <div class="mb-3">
                         <label class="form-label">Monto *</label>
                         <div class="input-group">
-                            <span class="input-group-text">$</span>
+                            <span class="input-group-text">C$</span>
                             <input type="number" class="form-control" name="monto" step="0.01" min="0" required
                                 placeholder="50.00">
                         </div>
@@ -233,15 +225,15 @@
 <div class="modal fade" id="addExpenseModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ url_for('agregar_gasto') }}">
+            <form id="formAgregarGasto" method="POST" onsubmit="event.preventDefault(); agregarGasto();">
                 <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title"><i class="bi bi-dash-circle"></i> Nuevo Gasto</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Tipo *</label>
-                        <select class="form-select" name="tipo" required>
+                        <label class="form-label">Categoría *</label>
+                        <select class="form-select" name="categoria" required>
                             <option value="">Seleccionar...</option>
                             <option value="gasolina">Gasolina</option>
                             <option value="mantenimiento">Mantenimiento Vehículo</option>
@@ -257,7 +249,7 @@
                     <div class="mb-3">
                         <label class="form-label">Monto *</label>
                         <div class="input-group">
-                            <span class="input-group-text">$</span>
+                            <span class="input-group-text">C$</span>
                             <input type="number" class="form-control" name="monto" step="0.01" min="0" required
                                 placeholder="100.00">
                         </div>

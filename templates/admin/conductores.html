@@ -9,12 +9,8 @@
         <h2>
             <i class="bi bi-steering"></i> Gestión de Conductores
         </h2>
-        <a href="{{ url_for('admin_conductores') }}?estado=pendientes" 
-        class="btn btn-warning">
-            <i class="bi bi-clock-history"></i> Ver Pendientes
-            {% if conductores_pendientes %}
-            <span class="badge bg-danger">{{ conductores_pendientes }}</span>
-            {% endif %}
+        <a href="{{ url_for('admin_conductores') }}" class="btn btn-outline-primary">
+            <i class="bi bi-people-fill"></i> Ver Conductores
         </a>
     </div>
     
@@ -32,10 +28,6 @@
                         class="btn btn-outline-success {% if estado_actual == 'activos' %}active{% endif %}">
                             Activos
                         </a>
-                        <a href="{{ url_for('admin_conductores') }}?estado=pendientes" 
-                        class="btn btn-outline-warning {% if estado_actual == 'pendientes' %}active{% endif %}">
-                            Pendientes
-                        </a>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -52,7 +44,7 @@
     
     <!-- Tarjetas de estadísticas -->
     <div class="row mb-4">
-        <div class="col-md-3 mb-3">
+        <div class="col-md-4 mb-3">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -68,7 +60,7 @@
             </div>
         </div>
         
-        <div class="col-md-3 mb-3">
+        <div class="col-md-4 mb-3">
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -86,25 +78,9 @@
             </div>
         </div>
         
-        <div class="col-md-3 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h6 class="card-title">Pendientes</h6>
-                            <h3 class="mb-0">
-                                {{ conductores|rejectattr('activo')|list|length }}
-                            </h3>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="bi bi-clock-history fs-1 opacity-75"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
         
-        <div class="col-md-3 mb-3">
+        
+        <div class="col-md-4 mb-3">
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -118,6 +94,39 @@
                             <i class="bi bi-signpost fs-1 opacity-75"></i>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle"></i>
+        Para asignar estudiantes a un conductor, primero asigna una ruta aquí y luego vincula estudiantes en
+        <a href="{{ url_for('admin_estudiantes') }}" class="alert-link">Estudiantes</a>.
+    </div>
+
+    <!-- Mapa GPS en tiempo real -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-geo-alt"></i> GPS en Tiempo Real (Conductores)</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-lg-8">
+                    <div id="adminMap" class="rounded" style="height: 320px;"></div>
+                    <div class="small text-muted mt-2">
+                        Última actualización: <span id="adminMapLastUpdate">-</span>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="d-flex gap-2 mb-2">
+                        <input type="text" class="form-control form-control-sm" id="adminDriverSearch" placeholder="Buscar conductor...">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="adminFilterActive" checked>
+                            <label class="form-check-label small" for="adminFilterActive">Activos</label>
+                        </div>
+                    </div>
+                    <div id="adminDriversList" class="list-group" style="max-height: 320px; overflow:auto;"></div>
                 </div>
             </div>
         </div>
@@ -176,8 +185,8 @@
                                     <i class="bi bi-check-circle"></i> Activo
                                 </span>
                                 {% else %}
-                                <span class="badge bg-warning">
-                                    <i class="bi bi-clock-history"></i> Pendiente
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-slash-circle"></i> Inactivo
                                 </span>
                                 {% endif %}
                                 <br>
@@ -196,6 +205,21 @@
                                     Sin ruta asignada
                                 </span>
                                 {% endif %}
+                                <div class="mt-2">
+                                    <select class="form-select form-select-sm" id="selectRuta{{ conductor.id }}">
+                                        <option value="">Asignar ruta...</option>
+                                        {% for ruta in rutas %}
+                                        <option value="{{ ruta.id }}"
+                                            {% if ruta_conductor and ruta_conductor.id == ruta.id %}selected{% endif %}>
+                                            {{ ruta.nombre }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="btn btn-sm btn-outline-primary mt-1 w-100"
+                                            onclick="asignarRutaConductor({{ conductor.id }}, '{{ conductor.nombre }}')">
+                                        <i class="bi bi-signpost-2"></i> Asignar Ruta
+                                    </button>
+                                </div>
                             </td>
                             <td>
                                 {% set vehiculo_conductor = vehiculos_por_conductor.get(conductor.id) %}
@@ -219,7 +243,7 @@
                                             class="btn btn-success"
                                             onclick="aprobarConductor({{ conductor.id }})"
                                             data-bs-toggle="tooltip" 
-                                            title="Aprobar conductor">
+                                            title="Activar conductor">
                                         <i class="bi bi-check"></i>
                                     </button>
                                     {% endif %}
@@ -284,22 +308,38 @@
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Nombre completo *</label>
+                            <label class="form-label">Nombre completo*</label>
                             <input type="text" class="form-control" name="nombre" required 
-                                placeholder="Ej: Carlos Antonio López">
+                                placeholder="Ej: Sergio Michell Pérez Mendoza">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Email *</label>
+                            <label class="form-label">Email*</label>
                             <input type="email" class="form-control" name="email" required 
                                 placeholder="ejemplo@camley.com">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Género *</label>
+                            <select class="form-select" name="genero" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="masculino">Masculino</option>
+                                <option value="femenino">Femenino</option>
+                            </select>
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Contraseña *</label>
-                            <input type="password" class="form-control" name="password" required 
-                                placeholder="Mínimo 6 caracteres">
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="driverPassword" name="password" required 
+                                    placeholder="Mínimo 6 caracteres">
+                                <button class="btn btn-outline-secondary password-toggle" type="button" data-target="driverPassword">
+                                    <i class="bi bi-eye-slash"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Teléfono *</label>
@@ -379,6 +419,46 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-warning">Asignar Vehículo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar conductor -->
+<div class="modal fade" id="editDriverModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Conductor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editDriverForm">
+                <div class="modal-body">
+                    <input type="hidden" id="editDriverId">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="editDriverName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editDriverEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="editDriverPhone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" id="editDriverActive">
+                            <option value="true">Activo</option>
+                            <option value="false">Inactivo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info">Guardar</button>
                 </div>
             </form>
         </div>
@@ -490,8 +570,18 @@ document.getElementById('assignVehicleForm').addEventListener('submit', function
 
 // Editar conductor
 function editarConductor(conductorId) {
-    // Redirigir a página de edición o mostrar modal
-    alert('Funcionalidad de edición en desarrollo. Conductor ID: ' + conductorId);
+    fetch('/api/conductor/' + conductorId + '/info')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) return;
+            document.getElementById('editDriverId').value = data.conductor.id;
+            document.getElementById('editDriverName').value = data.conductor.nombre;
+            document.getElementById('editDriverEmail').value = data.conductor.email;
+            document.getElementById('editDriverPhone').value = data.conductor.telefono || '';
+            document.getElementById('editDriverActive').value = data.conductor.activo ? 'true' : 'false';
+            const modal = new bootstrap.Modal(document.getElementById('editDriverModal'));
+            modal.show();
+        });
 }
 
 // Eliminar/desactivar conductor
@@ -521,6 +611,151 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     });
+});
+
+// GPS admin en tiempo real
+let adminMap;
+let adminMarkers = {};
+let adminVisibility = {};
+let lastLocations = [];
+
+function initAdminMap() {
+    adminMap = L.map('adminMap').setView([12.1364, -86.2514], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(adminMap);
+}
+
+function colorForId(id) {
+    const colors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796', '#fd7e14'];
+    return colors[id % colors.length];
+}
+
+function createOrUpdateMarker(u) {
+    const key = `c_${u.conductor_id}`;
+    const latLng = [u.lat, u.lng];
+    const color = colorForId(u.conductor_id);
+    if (!adminMarkers[key]) {
+        adminMarkers[key] = L.circleMarker(latLng, {
+            radius: 8,
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.9
+        }).bindPopup(`<strong>${u.nombre}</strong><br>Ruta: ${u.ruta || 'Sin ruta'}<br>Actualizado: ${u.ultima_actualizacion}`);
+        adminVisibility[key] = true;
+        adminMarkers[key].addTo(adminMap);
+    } else {
+        adminMarkers[key].setLatLng(latLng);
+        adminMarkers[key].setStyle({ color, fillColor: color });
+        adminMarkers[key].setPopupContent(`<strong>${u.nombre}</strong><br>Ruta: ${u.ruta || 'Sin ruta'}<br>Actualizado: ${u.ultima_actualizacion}`);
+    }
+}
+
+function renderDriverList(ubicaciones) {
+    const list = document.getElementById('adminDriversList');
+    const search = (document.getElementById('adminDriverSearch').value || '').toLowerCase();
+    const onlyActive = document.getElementById('adminFilterActive').checked;
+    list.innerHTML = '';
+
+    ubicaciones
+        .filter(u => (!onlyActive || u.activo) && u.nombre.toLowerCase().includes(search))
+        .forEach(u => {
+            const key = `c_${u.conductor_id}`;
+            const color = colorForId(u.conductor_id);
+            const item = document.createElement('div');
+            item.className = 'list-group-item d-flex align-items-center justify-content-between';
+            item.innerHTML = `
+                <div class="me-2">
+                    <span class="badge me-2" style="background:${color}">&nbsp;</span>
+                    <strong>${u.nombre}</strong>
+                    <div class="small text-muted">Ruta: ${u.ruta || 'Sin ruta'}</div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <input class="form-check-input" type="checkbox" ${adminVisibility[key] !== false ? 'checked' : ''} data-id="${key}">
+                    <button class="btn btn-sm btn-outline-primary" data-center="${u.conductor_id}">Centrar</button>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+
+    list.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+        chk.addEventListener('change', () => {
+            const key = chk.getAttribute('data-id');
+            adminVisibility[key] = chk.checked;
+            if (adminMarkers[key]) {
+                if (chk.checked) {
+                    adminMarkers[key].addTo(adminMap);
+                } else {
+                    adminMarkers[key].remove();
+                }
+            }
+        });
+    });
+
+    list.querySelectorAll('button[data-center]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-center');
+            const key = `c_${id}`;
+            const marker = adminMarkers[key];
+            if (marker) {
+                adminMap.setView(marker.getLatLng(), 15);
+                marker.openPopup();
+            }
+        });
+    });
+}
+
+function updateAdminLocations() {
+    fetch('/api/conductores/ubicaciones')
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+            const ubicaciones = data.ubicaciones || [];
+            if (ubicaciones.length === 0) return;
+            lastLocations = ubicaciones;
+            ubicaciones.forEach(u => createOrUpdateMarker(u));
+            renderDriverList(ubicaciones);
+            document.getElementById('adminMapLastUpdate').textContent = new Date().toLocaleTimeString();
+        })
+        .catch(() => {});
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initAdminMap();
+    updateAdminLocations();
+    setInterval(updateAdminLocations, 5000);
+
+    document.getElementById('adminDriverSearch').addEventListener('input', () => {
+        renderDriverList(lastLocations);
+    });
+    document.getElementById('adminFilterActive').addEventListener('change', () => {
+        renderDriverList(lastLocations);
+    });
+});
+
+// Guardar cambios de conductor
+document.getElementById('editDriverForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = document.getElementById('editDriverId').value;
+    const formData = new FormData();
+    formData.append('nombre', document.getElementById('editDriverName').value);
+    formData.append('email', document.getElementById('editDriverEmail').value);
+    formData.append('telefono', document.getElementById('editDriverPhone').value);
+    formData.append('activo', document.getElementById('editDriverActive').value);
+    
+    fetch(`/admin/conductores/${id}/editar`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(() => alert('Error de conexión'));
 });
 </script>
 {% endblock %}

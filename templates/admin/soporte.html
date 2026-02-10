@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %} - Soporte{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-headset"></i> Buzón de Servicio al Cliente</h2>
+    </div>
+    
+    <div class="card">
+        <div class="card-body p-0">
+            {% if tickets %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Remitente</th>
+                            <th>Mensaje</th>
+                            <th>Estado</th>
+                            <th>Responder</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in tickets %}
+                        <tr>
+                            <td>{{ t.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ t.remitente.nombre }} ({{ t.remitente_rol }})</td>
+                            <td>{{ t.mensaje }}</td>
+                            <td>
+                                {% if t.estado == 'respondido' %}
+                                <span class="badge bg-success">Respondido</span>
+                                {% else %}
+                                <span class="badge bg-warning">Abierto</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary"
+                                        onclick="abrirRespuesta({{ t.id }})">
+                                    <i class="bi bi-reply"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">No hay tickets de soporte.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal responder -->
+<div class="modal fade" id="replyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-reply"></i> Responder Ticket</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="replyForm">
+                <div class="modal-body">
+                    <input type="hidden" id="replyTicketId">
+                    <div class="mb-3">
+                        <label class="form-label">Respuesta</label>
+                        <textarea class="form-control" id="replyMessage" rows="4" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notificar conductor (opcional)</label>
+                        <select class="form-select" id="replyConductor">
+                            <option value="">Sin conductor</option>
+                            {% for c in conductores %}
+                            <option value="{{ c.id }}">{{ c.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Enviar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function abrirRespuesta(ticketId) {
+    document.getElementById('replyTicketId').value = ticketId;
+    document.getElementById('replyMessage').value = '';
+    document.getElementById('replyConductor').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('replyModal'));
+    modal.show();
+}
+
+document.getElementById('replyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = document.getElementById('replyTicketId').value;
+    const formData = new FormData();
+    formData.append('respuesta', document.getElementById('replyMessage').value);
+    const conductorId = document.getElementById('replyConductor').value;
+    if (conductorId) formData.append('conductor_id', conductorId);
+    
+    fetch(`/admin/soporte/${id}/responder`, { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert('Error: ' + data.error);
+        })
+        .catch(() => alert('Error de conexión'));
+});
+</script>
+{% endblock %}

@@ -71,7 +71,7 @@
                 </div>
             </div>
             <div class="card-footer d-flex align-items-center justify-content-between">
-                <a href="#" class="text-white small stretched-link">
+                <a href="{{ url_for('admin_conductores') }}" class="text-white small stretched-link">
                     Ver conductores
                 </a>
                 <div class="text-white"><i class="bi bi-chevron-right"></i></div>
@@ -105,7 +105,7 @@
                         </a>
                     </div>
                     <div class="col-md-3">
-                        <a href="#" class="btn btn-outline-secondary w-100">
+                        <a href="{{ url_for('generar_reporte_finanzas') }}" class="btn btn-outline-secondary w-100">
                             <i class="bi bi-file-text"></i> Generar Reporte
                         </a>
                     </div>
@@ -142,7 +142,7 @@
                                     {% set estudiante = pago.estudiante %}
                                     {{ estudiante.nombre if estudiante else 'N/A' }}
                                 </td>
-                                <td>${{ "%.2f"|format(pago.monto) }}</td>
+                                <td>C$ {{ "%.2f"|format(pago.monto) }}</td>
                                 <td>
                                     {% if pago.estado == 'pagado' %}
                                     <span class="badge bg-success">Pagado</span>
@@ -150,9 +150,11 @@
                                     <span class="badge bg-warning">Pendiente</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ pago.fecha_emision.strftime('%d/%m/%Y') }}</td>
                                 <td>
-                                    <a href="#" class="btn btn-sm btn-outline-info">
+                                    {{ (pago.fecha_pago or pago.fecha_creacion or pago.fecha_vencimiento).strftime('%d/%m/%Y') }}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin_pagos') }}" class="btn btn-sm btn-outline-info" title="Ver en pagos">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                 </td>
