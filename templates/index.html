@@ -26,8 +26,8 @@
         margin-bottom: 0;
         position: relative;
         z-index: 10;
-        transform: translate(-75px, 400px);
-    };
+        transform: translate(var(--hero-icon-x, -40px), var(--hero-icon-y, 140px));
+    }
     
     .access-card {
         border: none;
@@ -90,6 +90,42 @@
     .access-icon i {
         display: block;
         line-height: 1;
+    }
+
+    @media (max-width: 768px) {
+        .hero-section {
+            padding: 50px 0;
+            margin-bottom: 24px;
+        }
+
+        .hero-section .feature-icon {
+            transform: translate(var(--hero-icon-x, -10px), var(--hero-icon-y, 60px));
+        }
+
+        .display-4 {
+            font-size: 2rem;
+        }
+
+        .lead {
+            font-size: 1rem;
+        }
+
+        .hero-section .badge {
+            margin-bottom: 8px;
+        }
+
+        .access-card .card-body {
+            padding: 1.25rem !important;
+        }
+
+        .access-icon {
+            height: 56px;
+            font-size: 2.2rem;
+        }
+
+        .credentials-box {
+            padding: 1.25rem !important;
+        }
     }
 </style>
 {% endblock %}

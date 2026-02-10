@@ -293,10 +293,9 @@
                     {% else %}
                         <!-- Modo Oscuro para usuarios no autenticados -->
                         <li class="nav-item">
-                            <a class="btn btn-outline-light" id="toggleModoOscuro"
-                               href="{{ url_for('toggle_modo_oscuro', next=request.full_path) }}">
+                            <button class="btn btn-outline-light" id="toggleModoOscuro" type="button">
                                 <i class="fas fa-moon"></i>
-                            </a>
+                            </button>
                         </li>
                     {% endif %}
                 </ul>
@@ -364,6 +363,18 @@
         // Configuración global
         window.currentUserId = {{ current_user.id if current_user.is_authenticated else 0 }};
         window.lastNotificationCount = 0;
+
+        // Preferencia de modo oscuro en público (localStorage)
+        if (window.currentUserId === 0) {
+            const savedMode = localStorage.getItem('modo_oscuro');
+            if (savedMode === '1') {
+                document.body.classList.add('dark-mode');
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode');
+                document.documentElement.setAttribute('data-bs-theme', 'light');
+            }
+        }
         
         // Registrar Service Worker para PWA
         if ('serviceWorker' in navigator) {
@@ -493,6 +504,13 @@
             if (toggleBtn && !toggleBtn.dataset.bound) {
                 toggleBtn.dataset.bound = 'true';
                 toggleBtn.addEventListener('click', () => {
+                    if (window.currentUserId === 0) {
+                        const isDark = document.body.classList.toggle('dark-mode');
+                        document.documentElement.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
+                        localStorage.setItem('modo_oscuro', isDark ? '1' : '0');
+                        toggleBtn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+                        return;
+                    }
                     toggleBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
                     toggleBtn.disabled = true;
                     fetch('/toggle_modo_oscuro', { method: 'POST' })
