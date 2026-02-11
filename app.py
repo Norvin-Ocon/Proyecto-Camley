@@ -123,6 +123,10 @@ def manifest():
 def service_worker():
     return send_from_directory(app.root_path, 'service-worker.js')
 
+@app.route('/sw-kill.js')
+def sw_kill():
+    return send_from_directory(app.root_path, 'sw-kill.js')
+
 @app.route('/health')
 def health():
     return 'ok', 200
@@ -174,6 +178,12 @@ def push_unsubscribe():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Página de login general"""
+    # Permite cambiar de usuario desde la portada (?switch=1)
+    if current_user.is_authenticated and request.args.get('switch') == '1':
+        logout_user()
+        flash('Sesion cerrada. Inicia con otro usuario.', 'info')
+        return redirect(url_for('login'))
+
     if current_user.is_authenticated and request.method == 'GET':
         if current_user.rol == 'admin':
             return redirect(url_for('admin_dashboard'))

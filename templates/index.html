@@ -22,12 +22,6 @@
         z-index: 5;
     }
 
-    .hero-section .feature-icon {
-        margin-bottom: 0;
-        position: relative;
-        z-index: 10;
-        transform: translate(var(--hero-icon-x, -40px), var(--hero-icon-y, 140px));
-    }
     
     .access-card {
         border: none;
@@ -67,17 +61,6 @@
         margin-bottom: 15px;
     }
 
-    .hero-icon {
-        height: 100%;
-        min-height: 140px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        z-index: 10;
-        pointer-events: none;
-    }
-
     .access-icon {
         font-size: 3rem;
         margin-bottom: 15px;
@@ -96,10 +79,6 @@
         .hero-section {
             padding: 50px 0;
             margin-bottom: 24px;
-        }
-
-        .hero-section .feature-icon {
-            transform: translate(var(--hero-icon-x, -10px), var(--hero-icon-y, 60px));
         }
 
         .display-4 {
@@ -135,7 +114,7 @@
 <div class="hero-section">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-8">
+            <div class="col-lg-12">
                 <h1 class="display-4 fw-bold">
                     <i class="bi bi-bus-front"></i> Camley Transporte Escolar
                 </h1>
@@ -152,13 +131,6 @@
                     <span class="badge bg-light text-primary p-2">
                         <i class="bi bi-phone"></i> Multiplataforma
                     </span>
-                </div>
-            </div>
-            <div class="col-lg-4 text-center d-flex align-items-center justify-content-center">
-                <div class="hero-icon">
-                    <div class="feature-icon text-warning">
-                        <i class="bi bi-bus-front"></i>
-                    </div>
                 </div>
             </div>
         </div>
@@ -188,7 +160,7 @@
                             <p class="card-text">
                                 Gestión completa del sistema, usuarios, rutas, pagos y reportes.
                             </p>
-                            <a href="{{ url_for('login') }}" class="btn btn-primary btn-access w-100 mt-auto">
+                            <a href="{{ url_for('login', switch=1) }}" class="btn btn-primary btn-access w-100 mt-auto">
                                 <i class="bi bi-box-arrow-in-right"></i> Ingresar como Admin
                             </a>
                         </div>
@@ -206,7 +178,7 @@
                             <p class="card-text">
                                 Seguimiento en tiempo real, notificaciones y comunicación directa.
                             </p>
-                            <a href="{{ url_for('login') }}" class="btn btn-success btn-access w-100 mt-auto">
+                            <a href="{{ url_for('login', switch=1) }}" class="btn btn-success btn-access w-100 mt-auto">
                                 <i class="bi bi-box-arrow-in-right"></i> Ingresar como Padre
                             </a>
                         </div>
@@ -218,13 +190,13 @@
                     <div class="card access-card h-100 border-info">
                         <div class="card-body text-center p-4 d-flex flex-column">
                             <div class="access-icon text-info">
-                                <i class="bi bi-steering"></i>
+                                <i class="bi bi-bus-front-fill"></i>
                             </div>
                             <h4 class="card-title text-info">Conductores</h4>
                             <p class="card-text">
                                 Control de rutas, registro de asistencia y navegación optimizada.
                             </p>
-                            <a href="{{ url_for('login') }}" class="btn btn-info btn-access w-100 mt-auto">
+                            <a href="{{ url_for('login', switch=1) }}" class="btn btn-info btn-access w-100 mt-auto">
                                 <i class="bi bi-box-arrow-in-right"></i> Ingresar como Conductor
                             </a>
                         </div>

@@ -305,34 +305,9 @@ function agregarGasto() {
     });
 }
 
-// ==================== MODO OSCURO ====================
-
-function toggleModoOscuro(event) {
-    const button = (event && event.currentTarget) ? event.currentTarget : event.target;
-    const originalText = button.innerHTML;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Procesando...';
-    button.disabled = true;
-    
-    fetch('/toggle_modo_oscuro', { method: 'POST' })
-        .then(response => response.json())
-        .then(() => {
-            location.reload();
-        })
-        .catch(error => {
-            showNotification('Error al cambiar modo: ' + error, 'danger');
-            restoreButton(button, originalText);
-        });
-}
-
 // ==================== INICIALIZACIÓN ====================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Configurar botón modo oscuro
-    const toggleBtn = document.getElementById('toggleModoOscuro');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', toggleModoOscuro);
-    }
-    
     // Inicializar tooltips de Bootstrap
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -377,3 +352,4 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+

@@ -140,21 +140,20 @@ function installPWA() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 App Camley iniciada');
     
-    // Configurar PWA
+    // Configurar PWA (sin Service Worker en localhost para evitar cache viejo en desarrollo)
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.js')
-            .then(reg => console.log('✅ Service Worker registrado:', reg.scope))
-            .catch(err => console.log('❌ Service Worker error:', err));
-    }
-    
-    // Configurar modo oscuro
-    const isDarkMode = document.body.classList.contains('dark-mode');
-    const darkModeToggle = document.getElementById('toggleModoOscuro');
-    
-    if (darkModeToggle) {
-        darkModeToggle.innerHTML = isDarkMode ? 
-            '<i class="fas fa-sun"></i> Modo Claro' : 
-            '<i class="fas fa-moon"></i> Modo Oscuro';
+        const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+        if (isLocalhost) {
+            navigator.serviceWorker.register('/sw-kill.js')
+                .then(() => navigator.serviceWorker.getRegistrations())
+                .then(regs => Promise.all(regs.map(r => r.unregister())))
+                .then(() => console.log('ℹ️ Service Worker limpiado en localhost'))
+                .catch(err => console.log('⚠️ Error limpiando Service Worker local:', err));
+        } else {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(reg => console.log('✅ Service Worker registrado:', reg.scope))
+                .catch(err => console.log('❌ Service Worker error:', err));
+        }
     }
     
     // Verificar notificaciones cada 30 segundos
