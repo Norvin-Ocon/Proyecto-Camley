@@ -1,7 +1,5 @@
-const CACHE_NAME = 'camley-transporte-v2.1';
+const CACHE_NAME = 'camley-transporte-v2.2';
 const urlsToCache = [
-'/',
-'/login',
 '/static/css/style.css',
 '/static/js/admin.js',
 '/static/js/app.js',
@@ -53,6 +51,12 @@ event.waitUntil(
 self.addEventListener('fetch', event => {
 const url = new URL(event.request.url);
 
+  // No cachear navegación HTML (puede mezclar sesión autenticada/no autenticada)
+if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request));
+    return;
+}
+
   // NO cachear API requests ni páginas dinámicas
 if (url.pathname.includes('/api/') || 
     url.pathname.includes('/admin/') ||
@@ -97,11 +101,6 @@ event.respondWith(
     })
     .catch(error => {
         console.error('❌ Error en fetch:', error);
-        
-        // Fallback para página principal
-        if (event.request.mode === 'navigate') {
-        return caches.match('/');
-        }
         
         // Fallback para CSS/JS
         if (event.request.url.includes('.css')) {
