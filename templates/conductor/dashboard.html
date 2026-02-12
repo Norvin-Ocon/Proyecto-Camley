@@ -98,6 +98,7 @@
                                     <th>Nombre</th>
                                     <th>Grado</th>
                                     <th>Escuela</th>
+                                    <th>Dirección (Padre/Tutor)</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -108,6 +109,15 @@
                                     <td>{{ estudiante.nombre }}</td>
                                     <td>{{ estudiante.grado }}</td>
                                     <td>{{ estudiante.escuela or 'N/A' }}</td>
+                                    <td>
+                                        {% if estudiante.padre_rel and estudiante.padre_rel.direccion %}
+                                        <small><i class="bi bi-geo-alt"></i> {{ estudiante.padre_rel.direccion }}</small>
+                                        {% elif estudiante.padre_rel %}
+                                        <small class="text-muted">Dirección no registrada</small>
+                                        {% else %}
+                                        <small class="text-muted">Sin padre/tutor asignado</small>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% set asistencia = asistencia_map.get(estudiante.id) %}
                                         {% if asistencia %}

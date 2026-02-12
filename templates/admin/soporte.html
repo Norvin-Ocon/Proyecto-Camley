@@ -19,7 +19,7 @@
                             <th>Remitente</th>
                             <th>Mensaje</th>
                             <th>Estado</th>
-                            <th>Responder</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -36,10 +36,16 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-primary"
-                                        onclick="abrirRespuesta({{ t.id }})">
-                                    <i class="bi bi-reply"></i>
-                                </button>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-primary" title="Responder"
+                                            onclick="abrirRespuesta({{ t.id }})">
+                                        <i class="bi bi-reply"></i>
+                                    </button>
+                                    <button class="btn btn-danger" title="Eliminar"
+                                            onclick="eliminarTicket({{ t.id }})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -97,6 +103,19 @@ function abrirRespuesta(ticketId) {
     document.getElementById('replyConductor').value = '';
     const modal = new bootstrap.Modal(document.getElementById('replyModal'));
     modal.show();
+}
+
+function eliminarTicket(ticketId) {
+    if (!confirm('¿Eliminar este ticket de soporte? Esta acción no se puede deshacer.')) {
+        return;
+    }
+    fetch(`/admin/soporte/${ticketId}/eliminar`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert('Error: ' + data.error);
+        })
+        .catch(() => alert('Error de conexión'));
 }
 
 document.getElementById('replyForm').addEventListener('submit', function(e) {

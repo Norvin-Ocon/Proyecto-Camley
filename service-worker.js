@@ -1,4 +1,4 @@
-const CACHE_NAME = 'camley-transporte-v2.0';
+const CACHE_NAME = 'camley-transporte-v2.1';
 const urlsToCache = [
 '/',
 '/login',
@@ -60,7 +60,8 @@ if (url.pathname.includes('/api/') ||
     url.pathname.includes('/padre/') ||
     event.request.method !== 'GET') {
     // Pasar directamente al servidor
-    return fetch(event.request);
+    event.respondWith(fetch(event.request));
+    return;
 }
 
   // Para recursos estáticos y página principal, usar cache primero

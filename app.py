@@ -361,15 +361,33 @@ def admin_estudiantes():
     """Lista de estudiantes"""
     if current_user.rol != 'admin':
         return redirect(url_for('index'))
-    
-    estudiantes = Estudiante.query.all()
+
+    escuela_filtro = request.args.get('escuela', '').strip()
+    query = Estudiante.query
+
+    if escuela_filtro:
+        if escuela_filtro == '__sin_escuela__':
+            query = query.filter((Estudiante.escuela == None) | (Estudiante.escuela == ''))
+        else:
+            query = query.filter(Estudiante.escuela == escuela_filtro)
+
+    estudiantes = query.all()
+    escuelas_disponibles = [
+        row[0] for row in db.session.query(Estudiante.escuela)
+        .filter(Estudiante.escuela.isnot(None), Estudiante.escuela != '')
+        .distinct()
+        .order_by(Estudiante.escuela.asc())
+        .all()
+    ]
     padres = Usuario.query.filter_by(rol='padre', activo=True).all()
     rutas = Ruta.query.filter_by(activa=True).all()
     
     return render_template('admin/estudiantes.html',
                         estudiantes=estudiantes,
                         padres=padres,
-                        rutas=rutas)
+                        rutas=rutas,
+                        escuelas_disponibles=escuelas_disponibles,
+                        escuela_filtro=escuela_filtro)
 
 @app.route('/admin/estudiantes/agregar', methods=['POST'])
 @login_required
@@ -2176,6 +2194,20 @@ def responder_ticket(ticket_id):
         
         db.session.commit()
         return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/soporte/<int:ticket_id>/eliminar', methods=['POST'])
+@login_required
+def eliminar_ticket_soporte(ticket_id):
+    if current_user.rol != 'admin':
+        return jsonify({'success': False, 'error': 'No autorizado'}), 403
+    ticket = TicketSoporte.query.get_or_404(ticket_id)
+    try:
+        db.session.delete(ticket)
+        db.session.commit()
+        return jsonify({'success': True, 'message': '✅ Ticket eliminado'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
